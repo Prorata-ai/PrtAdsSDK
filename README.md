@@ -148,7 +148,7 @@ SDK Components:
 
 Both SDKs communicate with the same backend:
 
-- **Endpoint**: `https://tp-srch-api.gist.ai/v1/search`
+- **Endpoint**: `https://ads-api.gist.com/v1/search`
 - **Method**: POST
 - **Headers**: `Publisher-ID`, `Publisher-Key`
 - **Format**: JSON

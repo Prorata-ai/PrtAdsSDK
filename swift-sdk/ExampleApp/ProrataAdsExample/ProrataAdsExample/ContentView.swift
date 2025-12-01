@@ -10,8 +10,8 @@ import GistAdsSDK
 
 struct ContentView: View {
     // Configuration - Replace with your actual credentials
-    private let publisherID = "guest-api"
-    private let publisherKey = "eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6Imd1ZXN0LWFwaSJ9.f0YKQ5XWS3dGpsGHdGmAwLO3EJP3E379Odf9gL_Rp10"
+    private let publisherID = "your-publisher-id"
+    private let publisherKey = "your-publisher-key"
     
     // State for dynamic queries
     @State private var searchQuery = "best wireless headphones"
@@ -227,3 +227,4 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
+

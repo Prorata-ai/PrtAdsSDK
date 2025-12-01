@@ -78,7 +78,8 @@ struct AdWebView: NSViewRepresentable {
     
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
-        configuration.mediaTypesRequiringUserActionForPlayback = []
+        configuration.allowsInlineMediaPlayback = true
+        
         let webView = WKWebView(frame: .zero, configuration: configuration)
         
         return webView
