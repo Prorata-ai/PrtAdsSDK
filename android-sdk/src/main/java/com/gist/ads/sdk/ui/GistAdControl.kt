@@ -211,5 +211,5 @@ private fun EmptyView() {
 /**
  * Production API endpoint - managed internally
  */
-private const val API_BASE_URL = "https://ads-api.gist.com"
+private const val API_BASE_URL = "https://tp-srch-api.gist.ai"
 
