@@ -40,7 +40,10 @@ playground.xcworkspace
 Packages/
 Package.pins
 Package.resolved
-*.xcodeproj
+# Ignore user-specific Xcode data, but allow example app projects
+**/xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
 # Comment the next line if you want to version your SPM workspace
 .swiftpm/
 

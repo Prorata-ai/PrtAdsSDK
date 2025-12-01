@@ -29,7 +29,7 @@ public struct GistAdControl: View {
     // MARK: - Internal Configuration
     
     // Production API endpoint - managed internally
-    private static let apiBaseURL = "https://ads-api.gist.com"
+    private static let apiBaseURL = "https://tp-srch-api.gist.ai"
     
     // MARK: - Initialization
     
