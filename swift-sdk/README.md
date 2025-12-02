@@ -57,7 +57,7 @@ GistAdControl(
     publisherKey: "your-publisher-key",
     query: "running shoes",
     geo: "US",
-    adTypes: [.image, .imageText]
+    adTypes: [.image, .textImage]
 )
 ```
 
@@ -77,13 +77,15 @@ GistAdControl(
 |-----------|------|---------|-------------|
 | `geo` | `String` | `"US"` | Geographic location code (e.g., "US", "GB", "CA") |
 | `adTypes` | `[AdType]?` | `nil` | Array of ad types to filter (nil = all types) |
+| `environment` | `GistAdControl.Environment` | `.production` | API environment (staging, integration, or production) |
 
 ## Ad Types
 
 The SDK supports the following ad types for AI Search:
 
 - **`.image`** - Image-only ads
-- **`.imageText`** - Combined image and text ads
+- **`.textImage`** - Combined text and image ads
+- **`.text`** - Text-only ads
 
 ```swift
 // All ad types (default)
@@ -92,9 +94,54 @@ GistAdControl(..., adTypes: nil)
 // Only image ads
 GistAdControl(..., adTypes: [.image])
 
-// Both image and image/text ads
-GistAdControl(..., adTypes: [.image, .imageText])
+// Both image and text/image ads
+GistAdControl(..., adTypes: [.image, .textImage])
 ```
+
+## Environment Configuration
+
+The SDK supports multiple API environments for different stages of development and testing:
+
+- **`.production`** - Production API endpoint (default)
+- **`.integration`** - Integration environment for QA testing
+- **`.staging`** - Staging environment for development
+
+### Usage Examples
+
+```swift
+// Production (default) - no need to specify
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "best wireless headphones"
+)
+
+// Explicitly use production
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "best wireless headphones",
+    environment: .production
+)
+
+// Use staging for development
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "test query",
+    environment: .staging
+)
+
+// Use integration for QA
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "test query",
+    environment: .integration
+)
+```
+
+The environment parameter controls which API endpoint the SDK uses. The base URLs are managed internally and are not accessible externally.
 
 ## Advanced Usage
 
@@ -176,7 +223,7 @@ The SDK communicates with the Gist Ads API automatically. The API endpoint is ma
   "text": "search query",
   "geo": "US",
   "auction_type": "native",
-  "ad_type": ["image", "image/text"]
+  "ad_type": ["image", "text/image", "text"]
 }
 ```
 

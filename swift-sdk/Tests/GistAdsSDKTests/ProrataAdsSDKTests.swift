@@ -1,5 +1,5 @@
 //
-//  GistAdsSDKTests.swift
+//  ProrataAdsSDKTests.swift
 //  GistAdsSDKTests
 //
 //  Unit tests for Gist Ads SDK
@@ -8,22 +8,25 @@
 import XCTest
 @testable import GistAdsSDK
 
-final class GistAdsSDKTests: XCTestCase {
+final class ProrataAdsSDKTests: XCTestCase {
     
     func testAdTypeRawValues() {
         XCTAssertEqual(AdType.image.rawValue, "image")
-        XCTAssertEqual(AdType.imageText.rawValue, "image/text")
+        XCTAssertEqual(AdType.textImage.rawValue, "text/image")
+        XCTAssertEqual(AdType.text.rawValue, "text")
     }
     
     func testAdTypeDisplayNames() {
         XCTAssertEqual(AdType.image.displayName, "Image")
-        XCTAssertEqual(AdType.imageText.displayName, "Image/Text")
+        XCTAssertEqual(AdType.textImage.displayName, "Text/Image")
+        XCTAssertEqual(AdType.text.displayName, "Text")
     }
     
     func testAdTypeAllCases() {
-        XCTAssertEqual(AdType.allCases.count, 2)
+        XCTAssertEqual(AdType.allCases.count, 3)
         XCTAssertTrue(AdType.allCases.contains(.image))
-        XCTAssertTrue(AdType.allCases.contains(.imageText))
+        XCTAssertTrue(AdType.allCases.contains(.textImage))
+        XCTAssertTrue(AdType.allCases.contains(.text))
     }
     
     func testSearchRequestEncoding() throws {
@@ -72,17 +75,24 @@ final class GistAdsSDKTests: XCTestCase {
             AdAPIError.invalidResponse.errorDescription,
             "Invalid response from server"
         )
+        // Test invalidData with underlying error
+        let testError = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Test error"])
         XCTAssertEqual(
-            AdAPIError.invalidData.errorDescription,
-            "Unable to parse response data"
+            AdAPIError.invalidData(underlying: testError).errorDescription,
+            "Unable to parse response data: Test error"
         )
+        // Test httpError with status code and optional response
         XCTAssertEqual(
-            AdAPIError.httpError(statusCode: 404).errorDescription,
+            AdAPIError.httpError(statusCode: 404, response: nil).errorDescription,
             "HTTP error: 404"
         )
         XCTAssertEqual(
             AdAPIError.noAdsAvailable.errorDescription,
             "No ads available for this query"
+        )
+        XCTAssertEqual(
+            AdAPIError.missingIframeUrl.errorDescription,
+            "Ad response missing iframe URL"
         )
     }
     

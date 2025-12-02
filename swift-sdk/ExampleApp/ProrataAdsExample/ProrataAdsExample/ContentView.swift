@@ -10,13 +10,13 @@ import GistAdsSDK
 
 struct ContentView: View {
     // Configuration - Replace with your actual credentials
-    private let publisherID = "guest-api"
-    private let publisherKey = "eyJhbGciOiJIUzI1NiJ9.eyJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6Imd1ZXN0LWFwaSJ9.f0YKQ5XWS3dGpsGHdGmAwLO3EJP3E379Odf9gL_Rp10"
+    private let publisherID = "your-publisher-id"
+    private let publisherKey = "your-publisher-key"
     
     // State for dynamic queries
     @State private var searchQuery = "best wireless headphones"
     @State private var selectedGeo = "US"
-    @State private var selectedAdTypes: Set<AdType> = [.image, .imageText]
+    @State private var selectedAdTypes: Set<AdType> = [.image, .textImage]
     @State private var refreshTrigger = UUID()
     
     var body: some View {
@@ -145,7 +145,8 @@ struct ContentView: View {
                     publisherKey: publisherKey,
                     query: searchQuery,
                     geo: selectedGeo,
-                    adTypes: selectedAdTypes.isEmpty ? nil : Array(selectedAdTypes)
+                    adTypes: selectedAdTypes.isEmpty ? nil : Array(selectedAdTypes),
+                    environment: .production
                 )
                 .frame(height: 250)
                 .background(Color.white)

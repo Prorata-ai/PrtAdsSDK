@@ -10,6 +10,25 @@ import SwiftUI
 /// Main control for displaying Gist AI Search ads
 public struct GistAdControl: View {
     
+    /// Environment configuration for API endpoints
+    public enum Environment {
+        case staging
+        case integration
+        case production
+        
+        /// Base URL for the environment (internal)
+        internal var baseURL: String {
+            switch self {
+            case .staging:
+                return "https://tp-srch-api.staging.prorata.ai"
+            case .integration:
+                return "https://tp-srch-api.integration.prorata.ai"
+            case .production:
+                return "https://tp-srch-api.gist.ai"
+            }
+        }
+    }
+    
     // MARK: - Configuration Properties
     
     private let publisherID: String
@@ -17,6 +36,7 @@ public struct GistAdControl: View {
     private let query: String
     private let geo: String
     private let adTypes: [AdType]?
+    private let environment: Environment
     
     // MARK: - State
     
@@ -25,11 +45,6 @@ public struct GistAdControl: View {
     @State private var error: Error?
     
     private let apiService: AdAPIService
-    
-    // MARK: - Internal Configuration
-    
-    // Production API endpoint - managed internally
-    private static let apiBaseURL = "https://tp-srch-api.gist.ai"
     
     // MARK: - Initialization
     
@@ -40,21 +55,24 @@ public struct GistAdControl: View {
     ///   - query: The search query to fetch ads for
     ///   - geo: Geographic location code (e.g., "US", "GB")
     ///   - adTypes: Optional array of ad types to filter (defaults to all types)
+    ///   - environment: API environment (defaults to production)
     public init(
         publisherID: String,
         publisherKey: String,
         query: String,
         geo: String = "US",
-        adTypes: [AdType]? = nil
+        adTypes: [AdType]? = nil,
+        environment: Environment = .production
     ) {
         self.publisherID = publisherID
         self.publisherKey = publisherKey
         self.query = query
         self.geo = geo
         self.adTypes = adTypes
+        self.environment = environment
         
         self.apiService = AdAPIService(
-            baseURL: Self.apiBaseURL,
+            baseURL: environment.baseURL,
             publisherID: publisherID,
             publisherKey: publisherKey
         )
@@ -72,7 +90,7 @@ public struct GistAdControl: View {
             } else if let adContent = adContent {
                 AdWebView(htmlContent: adContent)
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: 100, maxHeight: 300)
+                    .frame(minHeight: AdViewConstants.defaultMinHeight, maxHeight: AdViewConstants.defaultMaxHeight)
             } else {
                 emptyView
             }
@@ -156,14 +174,16 @@ extension GistAdControl {
         publisherKey: String,
         query: String,
         geo: String = "US",
-        adTypes: [AdType]
+        adTypes: [AdType],
+        environment: Environment = .production
     ) -> GistAdControl {
         GistAdControl(
             publisherID: publisherID,
             publisherKey: publisherKey,
             query: query,
             geo: geo,
-            adTypes: adTypes
+            adTypes: adTypes,
+            environment: environment
         )
     }
 }

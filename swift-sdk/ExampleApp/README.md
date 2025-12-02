@@ -8,6 +8,7 @@ This example app demonstrates how to integrate the Gist Ads SDK into an iOS appl
 - ✅ Configuration UI for testing different parameters
 - ✅ Ad type filtering (image, image/text)
 - ✅ Geographic targeting selection
+- ✅ Environment configuration (staging, integration, production)
 - ✅ Example queries for testing
 - ✅ Error handling demonstration
 
@@ -92,9 +93,42 @@ GistAdControl(
     publisherKey: publisherKey,
     query: searchQuery,
     geo: selectedGeo,
-    adTypes: [.image, .imageText]
+    adTypes: [.image, .textImage],
+    environment: .production  // Optional: .staging, .integration, or .production (default)
 )
 ```
+
+### Environment Configuration
+
+You can test with different API environments by specifying the `environment` parameter:
+
+```swift
+// Production (default)
+GistAdControl(
+    publisherID: publisherID,
+    publisherKey: publisherKey,
+    query: searchQuery,
+    environment: .production
+)
+
+// Staging for development
+GistAdControl(
+    publisherID: publisherID,
+    publisherKey: publisherKey,
+    query: searchQuery,
+    environment: .staging
+)
+
+// Integration for QA
+GistAdControl(
+    publisherID: publisherID,
+    publisherKey: publisherKey,
+    query: searchQuery,
+    environment: .integration
+)
+```
+
+**Note:** The environment parameter controls which API endpoint is used. Use staging or integration for testing, and production for release builds.
 
 ## Requirements
 

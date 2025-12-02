@@ -27,8 +27,11 @@ class AdAPIService {
     ///   - adTypes: Optional array of ad types to filter
     /// - Returns: HTML string containing the ad iframe
     func fetchAd(query: String, geo: String, adTypes: [AdType]?) async throws -> String {
-        // Construct the API endpoint
-        guard let url = URL(string: "\(baseURL)/v1/search") else {
+        // Construct the API endpoint using URL(string:relativeTo:) for safer construction
+        guard let base = URL(string: baseURL) else {
+            throw AdAPIError.invalidURL
+        }
+        guard let url = URL(string: APIConstants.searchEndpoint, relativeTo: base) else {
             throw AdAPIError.invalidURL
         }
         
@@ -44,11 +47,12 @@ class AdAPIService {
         let searchRequest = SearchRequest(
             text: query,
             geo: geo,
-            auctionType: "native",
+            auctionType: APIConstants.auctionType,
             adType: adTypeStrings
         )
         
-        request.httpBody = try JSONEncoder().encode(searchRequest)
+        let requestBody = try JSONEncoder().encode(searchRequest)
+        request.httpBody = requestBody
         
         // Make the request
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -59,20 +63,32 @@ class AdAPIService {
         }
         
         guard httpResponse.statusCode == 200 else {
-            throw AdAPIError.httpError(statusCode: httpResponse.statusCode)
+            throw AdAPIError.httpError(statusCode: httpResponse.statusCode, response: data)
         }
         
-        // The API returns ad HTML/JSON - convert to string
-        guard let htmlString = String(data: data, encoding: .utf8) else {
-            throw AdAPIError.invalidData
+        // Parse JSON response
+        let decoder = JSONDecoder()
+        let searchResponse: SearchResponse
+        do {
+            searchResponse = try decoder.decode(SearchResponse.self, from: data)
+        } catch {
+            throw AdAPIError.invalidData(underlying: error)
         }
         
-        // Check if we got a NO_AD response
-        if htmlString.contains("\"ads\":[]") || htmlString.contains("NO_AD") {
+        // Check if we have a selection with ads
+        guard let selection = searchResponse.selection, !selection.isEmpty else {
             throw AdAPIError.noAdsAvailable
         }
         
-        return htmlString
+        // Extract iframeUrl from first selection item
+        guard let firstAd = selection.first,
+              let iframeUrl = firstAd.iframeUrl,
+              !iframeUrl.isEmpty else {
+            throw AdAPIError.missingIframeUrl
+        }
+
+        // Generate iframe HTML using utility
+        return IframeHTMLGenerator.generate(iframeUrl: iframeUrl)
     }
 }
 
@@ -80,9 +96,10 @@ class AdAPIService {
 enum AdAPIError: LocalizedError {
     case invalidURL
     case invalidResponse
-    case invalidData
-    case httpError(statusCode: Int)
+    case invalidData(underlying: Error)
+    case httpError(statusCode: Int, response: Data?)
     case noAdsAvailable
+    case missingIframeUrl
     
     var errorDescription: String? {
         switch self {
@@ -90,12 +107,14 @@ enum AdAPIError: LocalizedError {
             return "Invalid API URL"
         case .invalidResponse:
             return "Invalid response from server"
-        case .invalidData:
-            return "Unable to parse response data"
-        case .httpError(let statusCode):
+        case .invalidData(let underlying):
+            return "Unable to parse response data: \(underlying.localizedDescription)"
+        case .httpError(let statusCode, _):
             return "HTTP error: \(statusCode)"
         case .noAdsAvailable:
             return "No ads available for this query"
+        case .missingIframeUrl:
+            return "Ad response missing iframe URL"
         }
     }
 }

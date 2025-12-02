@@ -5,10 +5,11 @@ This document provides real-world usage examples for the Gist Ads SDK.
 ## Table of Contents
 
 1. [Basic Examples](#basic-examples)
-2. [AI Search Integration](#ai-search-integration)
-3. [E-commerce Integration](#e-commerce-integration)
-4. [News & Content Apps](#news--content-apps)
-5. [Multi-platform Apps](#multi-platform-apps)
+2. [Environment Configuration Examples](#environment-configuration-examples)
+3. [AI Search Integration](#ai-search-integration)
+4. [E-commerce Integration](#e-commerce-integration)
+5. [News & Content Apps](#news--content-apps)
+6. [Multi-platform Apps](#multi-platform-apps)
 
 ---
 
@@ -70,6 +71,102 @@ struct SearchView: View {
                 .id(searchQuery) // Refresh when query changes
             }
         }
+    }
+}
+```
+
+---
+
+## Environment Configuration Examples
+
+The SDK supports multiple API environments for different stages of development. Use the `environment` parameter to switch between staging, integration, and production endpoints.
+
+### Production Environment (Default)
+
+```swift
+// Production is the default - no need to specify
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "best wireless headphones"
+)
+
+// Explicitly use production
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "best wireless headphones",
+    environment: .production
+)
+```
+
+### Staging Environment
+
+Use staging for development and testing:
+
+```swift
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "test query",
+    environment: .staging
+)
+```
+
+### Integration Environment
+
+Use integration for QA and pre-production testing:
+
+```swift
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "test query",
+    environment: .integration
+)
+```
+
+### Environment-Based Configuration
+
+```swift
+struct ConfigurableAdView: View {
+    let query: String
+    @AppStorage("useStaging") private var useStaging = false
+    
+    var body: some View {
+        GistAdControl(
+            publisherID: Config.publisherID,
+            publisherKey: Config.publisherKey,
+            query: query,
+            environment: useStaging ? .staging : .production
+        )
+        .frame(height: 250)
+    }
+}
+```
+
+### Build Configuration Based Environment
+
+```swift
+struct AdView: View {
+    let query: String
+    
+    private var environment: GistAdControl.Environment {
+        #if DEBUG
+        return .staging
+        #else
+        return .production
+        #endif
+    }
+    
+    var body: some View {
+        GistAdControl(
+            publisherID: Config.publisherID,
+            publisherKey: Config.publisherKey,
+            query: query,
+            environment: environment
+        )
+        .frame(height: 250)
     }
 }
 ```
@@ -147,7 +244,7 @@ struct PerplexityStyleView: View {
                         publisherKey: Config.publisherKey,
                         query: extractCommercialIntent(from: result),
                         geo: "US",
-                        adTypes: [.image, .imageText]
+                        adTypes: [.image, .textImage]
                     )
                     .frame(height: 250)
                     .background(Color(.systemGray6))
@@ -193,7 +290,7 @@ struct ProductSearchView: View {
                         publisherKey: Config.publisherKey,
                         query: searchText,
                         geo: "US",
-                        adTypes: [.imageText]
+                        adTypes: [.textImage]
                     )
                     .frame(height: 200)
                     .padding()
