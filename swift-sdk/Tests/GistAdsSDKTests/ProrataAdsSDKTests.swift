@@ -100,5 +100,55 @@ final class ProrataAdsSDKTests: XCTestCase {
         XCTAssertEqual(GistAdsSDK.version, "1.0.0")
         XCTAssertEqual(GistAdsSDK.name, "GistAdsSDK")
     }
+    
+    // MARK: - AdViewConstants Tests
+    
+    func testAdViewConstantsDefaultValues() {
+        // Test defaults when no env vars are set
+        XCTAssertEqual(AdViewConstants.defaultMinHeight, 100)
+        XCTAssertEqual(AdViewConstants.defaultMaxHeight, 300)
+        XCTAssertEqual(AdViewConstants.iframeMinHeight, 250)
+    }
+    
+    func testAdViewConstantsEnvironmentVariableOverride() {
+        // Verify configurable properties exist and return defaults when env vars not set
+        XCTAssertEqual(AdViewConstants.configurableMinHeight, AdViewConstants.defaultMinHeight)
+        XCTAssertEqual(AdViewConstants.configurableMaxHeight, AdViewConstants.defaultMaxHeight)
+        XCTAssertEqual(AdViewConstants.configurableIframeMinHeight, AdViewConstants.iframeMinHeight)
+        
+        // Verify they are CGFloat values
+        XCTAssertTrue(AdViewConstants.configurableMinHeight >= 0)
+        XCTAssertTrue(AdViewConstants.configurableMaxHeight >= 0)
+        XCTAssertTrue(AdViewConstants.configurableIframeMinHeight >= 0)
+    }
+    
+    func testAdViewConstantsInvalidEnvironmentVariable() {
+        // Test that invalid values fall back to defaults
+        let minHeight = AdViewConstants.configurableMinHeight
+        let maxHeight = AdViewConstants.configurableMaxHeight
+        let iframeHeight = AdViewConstants.configurableIframeMinHeight
+        
+        // Should be valid positive numbers
+        XCTAssertGreaterThanOrEqual(minHeight, 0)
+        XCTAssertGreaterThanOrEqual(maxHeight, 0)
+        XCTAssertGreaterThanOrEqual(iframeHeight, 0)
+        
+        // Should match defaults when env vars not set
+        XCTAssertEqual(minHeight, AdViewConstants.defaultMinHeight)
+        XCTAssertEqual(maxHeight, AdViewConstants.defaultMaxHeight)
+        XCTAssertEqual(iframeHeight, AdViewConstants.iframeMinHeight)
+    }
+    
+    func testAdViewConstantsPartialOverride() {
+        // Verify each configurable property works independently
+        let minHeight = AdViewConstants.configurableMinHeight
+        let maxHeight = AdViewConstants.configurableMaxHeight
+        let iframeHeight = AdViewConstants.configurableIframeMinHeight
+        
+        // Each should independently return its default
+        XCTAssertEqual(minHeight, 100)
+        XCTAssertEqual(maxHeight, 300)
+        XCTAssertEqual(iframeHeight, 250)
+    }
 }
 

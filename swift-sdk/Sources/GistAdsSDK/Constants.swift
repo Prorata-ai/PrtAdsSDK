@@ -48,5 +48,41 @@ enum AdViewConstants {
     static let defaultMinHeight: CGFloat = 100
     static let defaultMaxHeight: CGFloat = 300
     static let iframeMinHeight: CGFloat = 250
+    
+    /// Get default minimum height, checking environment variable first
+    /// Environment variable: GIST_ADS_DEFAULT_MIN_HEIGHT
+    /// - Returns: Height from environment variable if set and valid, otherwise the default constant
+    static var configurableMinHeight: CGFloat {
+        if let envValue = ProcessInfo.processInfo.environment["GIST_ADS_DEFAULT_MIN_HEIGHT"],
+           let height = Double(envValue),
+           height >= 0 {
+            return CGFloat(height)
+        }
+        return defaultMinHeight
+    }
+    
+    /// Get default maximum height, checking environment variable first
+    /// Environment variable: GIST_ADS_DEFAULT_MAX_HEIGHT
+    /// - Returns: Height from environment variable if set and valid, otherwise the default constant
+    static var configurableMaxHeight: CGFloat {
+        if let envValue = ProcessInfo.processInfo.environment["GIST_ADS_DEFAULT_MAX_HEIGHT"],
+           let height = Double(envValue),
+           height >= 0 {
+            return CGFloat(height)
+        }
+        return defaultMaxHeight
+    }
+    
+    /// Get iframe minimum height, checking environment variable first
+    /// Environment variable: GIST_ADS_IFRAME_MIN_HEIGHT
+    /// - Returns: Height from environment variable if set and valid, otherwise the default constant
+    static var configurableIframeMinHeight: CGFloat {
+        if let envValue = ProcessInfo.processInfo.environment["GIST_ADS_IFRAME_MIN_HEIGHT"],
+           let height = Double(envValue),
+           height >= 0 {
+            return CGFloat(height)
+        }
+        return iframeMinHeight
+    }
 }
 

@@ -176,20 +176,24 @@ struct AdView: View {
 You can override the default base URLs for any environment using environment variables:
 
 **Setting in Xcode:**
+
 1. Product → Scheme → Edit Scheme...
 2. Run → Arguments → Environment Variables
 3. Add:
+
    - `GIST_ADS_PRODUCTION_URL` = `https://custom-api.example.com`
    - `GIST_ADS_STAGING_URL` = `https://custom-staging.example.com`
    - `GIST_ADS_INTEGRATION_URL` = `https://custom-integration.example.com`
 
 **Setting via Terminal:**
+
 ```bash
 export GIST_ADS_PRODUCTION_URL="https://custom-api.example.com"
 # Then run your app
 ```
 
 **Example: Testing with Local Server**
+
 ```swift
 // Set GIST_ADS_STAGING_URL="http://localhost:8080" in Xcode scheme
 GistAdControl(
@@ -201,6 +205,57 @@ GistAdControl(
 ```
 
 **Note:** Environment variables take precedence over default URLs. If not set, the SDK uses the default URLs defined internally.
+
+### Configuring View Heights
+
+You can customize the default ad view heights using environment variables:
+
+**Setting Height Environment Variables in Xcode:**
+
+1. Product → Scheme → Edit Scheme...
+2. Run → Arguments → Environment Variables
+3. Add:
+
+   - `GIST_ADS_DEFAULT_MIN_HEIGHT` = `150` (default: 100)
+   - `GIST_ADS_DEFAULT_MAX_HEIGHT` = `400` (default: 300)
+   - `GIST_ADS_IFRAME_MIN_HEIGHT` = `300` (default: 250)
+
+**Example: Custom Heights for Different Devices**
+
+```swift
+// Set GIST_ADS_DEFAULT_MAX_HEIGHT="500" for tablet layouts
+// Set GIST_ADS_DEFAULT_MAX_HEIGHT="250" for phone layouts
+
+struct ResponsiveAdView: View {
+    let query: String
+    
+    var body: some View {
+        GistAdControl(
+            publisherID: Config.publisherID,
+            publisherKey: Config.publisherKey,
+            query: query
+        )
+        // Heights are automatically configured via environment variables
+        .frame(maxWidth: .infinity)
+    }
+}
+```
+
+**Example: Testing with Custom Heights**
+
+```swift
+// Set GIST_ADS_DEFAULT_MIN_HEIGHT="200" and GIST_ADS_DEFAULT_MAX_HEIGHT="600"
+// in Xcode scheme for testing larger ad formats
+
+GistAdControl(
+    publisherID: Config.publisherID,
+    publisherKey: Config.publisherKey,
+    query: "test query"
+)
+// Will use custom heights from environment variables
+```
+
+**Note:** Height values must be positive numbers. Invalid or negative values fall back to defaults.
 
 ---
 

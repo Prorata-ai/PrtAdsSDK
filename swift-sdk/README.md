@@ -169,6 +169,36 @@ Edit `Constants.swift` in the SDK source to change default URLs.
 
 If no environment variable is set, the SDK uses the default URLs defined internally.
 
+### Configuring View Heights
+
+The SDK allows you to override default view heights via environment variables for customizing ad display dimensions:
+
+**Environment Variables:**
+- `GIST_ADS_DEFAULT_MIN_HEIGHT` - Overrides default minimum height (default: 100)
+- `GIST_ADS_DEFAULT_MAX_HEIGHT` - Overrides default maximum height (default: 300)
+- `GIST_ADS_IFRAME_MIN_HEIGHT` - Overrides iframe minimum height (default: 250)
+
+**Setting Height Environment Variables:**
+
+**Option 1: Xcode Scheme**
+1. Product → Scheme → Edit Scheme...
+2. Run → Arguments → Environment Variables
+3. Add the variable name and numeric value (e.g., `GIST_ADS_DEFAULT_MIN_HEIGHT` = `150`)
+
+**Option 2: Terminal**
+```bash
+export GIST_ADS_DEFAULT_MIN_HEIGHT="150"
+export GIST_ADS_DEFAULT_MAX_HEIGHT="400"
+```
+
+**Option 3: Build-time Constants**
+Edit `Constants.swift` in the SDK source to change default height values.
+
+**Notes:**
+- Values must be positive numbers (negative values fall back to defaults)
+- Invalid values (non-numeric strings) fall back to defaults
+- If no environment variable is set, the SDK uses the default height values defined internally
+
 ## Advanced Usage
 
 ### Dynamic Query Updates

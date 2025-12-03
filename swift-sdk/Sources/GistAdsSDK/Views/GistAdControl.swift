@@ -84,7 +84,7 @@ public struct GistAdControl: View {
             } else if let adContent = adContent {
                 AdWebView(htmlContent: adContent)
                     .frame(maxWidth: .infinity)
-                    .frame(minHeight: AdViewConstants.defaultMinHeight, maxHeight: AdViewConstants.defaultMaxHeight)
+                    .frame(minHeight: AdViewConstants.configurableMinHeight, maxHeight: AdViewConstants.configurableMaxHeight)
             } else {
                 emptyView
             }
