@@ -67,10 +67,9 @@ class AdAPIService {
         }
         
         // Parse JSON response
-        let decoder = JSONDecoder()
         let searchResponse: SearchResponse
         do {
-            searchResponse = try decoder.decode(SearchResponse.self, from: data)
+            searchResponse = try JSONDecoder().decode(SearchResponse.self, from: data)
         } catch {
             throw AdAPIError.invalidData(underlying: error)
         }
