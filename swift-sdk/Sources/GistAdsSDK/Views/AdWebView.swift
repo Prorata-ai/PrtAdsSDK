@@ -27,39 +27,39 @@ private func wrappedHTML(content: String, isIOS: Bool) -> String {
     return """
     <!DOCTYPE html>
     <html>
-    <head>
-        <meta name="viewport" content="\(viewport)">
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            body {
-                background: transparent;
-                overflow: hidden;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            }
-            .ad-container {
-                width: 100%;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 8px;
-            }
-            \(isIOS ? """
-            .ad-content {
-                width: 100%;
-                max-width: 600px;
-            }
-            """ : "")
-        </style>
-    </head>
-    <body>
-        <div class="ad-container">
-            \(adContentDiv)
-        </div>
-    </body>
+        <head>
+            <meta name="viewport" content="\(viewport)">
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body {
+                    background: transparent;
+                    overflow: hidden;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }
+                .ad-container {
+                    width: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 8px;
+                }
+                \(isIOS ? """
+                .ad-content {
+                    width: 100%;
+                    max-width: 600px;
+                }
+                """ : "")
+            </style>
+        </head>
+        <body>
+            <div class="ad-container">
+                \(adContentDiv)
+            </div>
+        </body>
     </html>
     """
 }
