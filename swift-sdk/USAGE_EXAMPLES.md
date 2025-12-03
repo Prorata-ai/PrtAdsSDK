@@ -171,6 +171,37 @@ struct AdView: View {
 }
 ```
 
+### Overriding Base URLs with Environment Variables
+
+You can override the default base URLs for any environment using environment variables:
+
+**Setting in Xcode:**
+1. Product → Scheme → Edit Scheme...
+2. Run → Arguments → Environment Variables
+3. Add:
+   - `GIST_ADS_PRODUCTION_URL` = `https://custom-api.example.com`
+   - `GIST_ADS_STAGING_URL` = `https://custom-staging.example.com`
+   - `GIST_ADS_INTEGRATION_URL` = `https://custom-integration.example.com`
+
+**Setting via Terminal:**
+```bash
+export GIST_ADS_PRODUCTION_URL="https://custom-api.example.com"
+# Then run your app
+```
+
+**Example: Testing with Local Server**
+```swift
+// Set GIST_ADS_STAGING_URL="http://localhost:8080" in Xcode scheme
+GistAdControl(
+    publisherID: Config.publisherID,
+    publisherKey: Config.publisherKey,
+    query: "test query",
+    environment: .staging  // Will use http://localhost:8080 if env var is set
+)
+```
+
+**Note:** Environment variables take precedence over default URLs. If not set, the SDK uses the default URLs defined internally.
+
 ---
 
 ## AI Search Integration

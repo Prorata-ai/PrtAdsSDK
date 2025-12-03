@@ -141,7 +141,33 @@ GistAdControl(
 )
 ```
 
-The environment parameter controls which API endpoint the SDK uses. The base URLs are managed internally and are not accessible externally.
+The environment parameter controls which API endpoint the SDK uses. Base URLs can be overridden via environment variables (see Overriding Base URLs section) or use the default values managed internally.
+
+### Overriding Base URLs
+
+The SDK allows you to override base URLs via environment variables for testing and development:
+
+**Environment Variables:**
+- `GIST_ADS_STAGING_URL` - Overrides staging environment base URL
+- `GIST_ADS_INTEGRATION_URL` - Overrides integration environment base URL
+- `GIST_ADS_PRODUCTION_URL` - Overrides production environment base URL
+
+**Setting Environment Variables:**
+
+**Option 1: Xcode Scheme**
+1. Product → Scheme → Edit Scheme...
+2. Run → Arguments → Environment Variables
+3. Add the variable name and value
+
+**Option 2: Terminal**
+```bash
+export GIST_ADS_PRODUCTION_URL="https://custom-api.example.com"
+```
+
+**Option 3: Build-time Constants**
+Edit `Constants.swift` in the SDK source to change default URLs.
+
+If no environment variable is set, the SDK uses the default URLs defined internally.
 
 ## Advanced Usage
 

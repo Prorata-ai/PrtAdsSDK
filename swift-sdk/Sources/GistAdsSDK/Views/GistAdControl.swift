@@ -17,15 +17,9 @@ public struct GistAdControl: View {
         case production
         
         /// Base URL for the environment (internal)
+        /// Can be overridden via environment variables: GIST_ADS_STAGING_URL, GIST_ADS_INTEGRATION_URL, GIST_ADS_PRODUCTION_URL
         internal var baseURL: String {
-            switch self {
-            case .staging:
-                return "https://tp-srch-api.staging.prorata.ai"
-            case .integration:
-                return "https://tp-srch-api.integration.prorata.ai"
-            case .production:
-                return "https://tp-srch-api.gist.ai"
-            }
+            APIConstants.baseURL(for: self)
         }
     }
     
