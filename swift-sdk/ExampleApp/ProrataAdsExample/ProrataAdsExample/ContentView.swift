@@ -99,6 +99,9 @@ struct ContentView: View {
                     Text("Australia").tag("AU")
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: selectedGeo) {
+                    refreshTrigger = UUID()
+                }
             }
             
             // Ad Types
