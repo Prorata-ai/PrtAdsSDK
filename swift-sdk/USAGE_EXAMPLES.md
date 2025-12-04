@@ -206,6 +206,46 @@ GistAdControl(
 
 **Note:** Environment variables take precedence over default URLs. If not set, the SDK uses the default URLs defined internally.
 
+### Overriding Iframe Base URLs with Environment Variables
+
+You can override the default iframe base URLs for any environment using environment variables. This is useful for testing against staging/integration ad tag servers. The iframe base URL automatically matches the `GistAdControl` environment setting.
+
+**Default Iframe Base URLs:**
+- Staging: `https://tp-at.staging.prorata.ai`
+- Integration: `https://tp-at.integration.prorata.ai`
+- Production: `https://tp-at.prorata.ai`
+
+**Setting in Xcode:**
+
+1. Product → Scheme → Edit Scheme...
+2. Run → Arguments → Environment Variables
+3. Add:
+
+   - `GIST_ADS_PRODUCTION_IFRAME_URL` = `https://custom-iframe.example.com`
+   - `GIST_ADS_STAGING_IFRAME_URL` = `https://custom-staging-iframe.example.com`
+   - `GIST_ADS_INTEGRATION_IFRAME_URL` = `https://custom-integration-iframe.example.com`
+
+**Setting via Terminal:**
+
+```bash
+export GIST_ADS_STAGING_IFRAME_URL="https://custom-staging-iframe.example.com"
+# Then run your app
+```
+
+**Example: Testing with Staging Ad Tag Server**
+
+```swift
+// Set GIST_ADS_STAGING_IFRAME_URL="https://custom-staging-iframe.example.com" in Xcode scheme
+GistAdControl(
+    publisherID: Config.publisherID,
+    publisherKey: Config.publisherKey,
+    query: "test query",
+    environment: .staging  // Will use custom-staging-iframe.example.com if env var is set
+)
+```
+
+**Note:** Environment variables take precedence over default iframe base URLs. If not set, the SDK uses the default iframe base URLs defined internally for each environment.
+
 ### API Version Configuration
 
 The SDK supports both v1 and v2 API endpoints. By default, v2 is used. You can switch versions using the `GIST_ADS_API_VERSION` environment variable.

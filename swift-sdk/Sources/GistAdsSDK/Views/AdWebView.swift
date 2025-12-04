@@ -10,11 +10,6 @@ import WebKit
 
 // MARK: - Shared Helpers
 
-/// Cached base URL for iframe loading
-private let iframeBaseURL: URL = {
-    URL(string: APIConstants.iframeBaseURL) ?? URL(string: "about:blank")!
-}()
-
 /// Generate wrapped HTML for ad content
 /// - Parameters:
 ///   - content: The ad HTML content to wrap
@@ -105,6 +100,11 @@ fileprivate class NavigationDelegate: NSObject, WKNavigationDelegate {
 /// SwiftUI wrapper for WKWebView to render ads
 struct AdWebView: UIViewRepresentable {
     let htmlContent: String
+    let iframeBaseURL: String
+    
+    private var baseURL: URL {
+        URL(string: iframeBaseURL) ?? URL(string: "about:blank")!
+    }
     
     func makeCoordinator() -> Coordinator {
         let coordinator = Coordinator()
@@ -134,7 +134,7 @@ struct AdWebView: UIViewRepresentable {
             context.coordinator.lastContent = htmlContent
             
             let html = wrappedHTML(content: htmlContent, isIOS: true)
-            webView.loadHTMLString(html, baseURL: iframeBaseURL)
+            webView.loadHTMLString(html, baseURL: baseURL)
         }
     }
     
@@ -148,6 +148,11 @@ struct AdWebView: UIViewRepresentable {
 /// SwiftUI wrapper for WKWebView to render ads (macOS)
 struct AdWebView: NSViewRepresentable {
     let htmlContent: String
+    let iframeBaseURL: String
+    
+    private var baseURL: URL {
+        URL(string: iframeBaseURL) ?? URL(string: "about:blank")!
+    }
     
     func makeCoordinator() -> Coordinator {
         let coordinator = Coordinator()
@@ -177,7 +182,7 @@ struct AdWebView: NSViewRepresentable {
             context.coordinator.lastContent = htmlContent
             
             let html = wrappedHTML(content: htmlContent, isIOS: false)
-            webView.loadHTMLString(html, baseURL: iframeBaseURL)
+            webView.loadHTMLString(html, baseURL: baseURL)
         }
     }
     

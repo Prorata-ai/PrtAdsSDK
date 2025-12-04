@@ -15,7 +15,11 @@ public enum APIConstants {
     public static let apiVersionV2 = "v2"
     
     static let auctionType = "native"
-    static let iframeBaseURL = "https://tp-at.prorata.ai"
+    
+    // Environment-specific iframe base URLs (can be overridden via environment variables)
+    static let stagingIframeBaseURL = "https://tp-at.staging.prorata.ai"
+    static let integrationIframeBaseURL = "https://tp-at.integration.prorata.ai"
+    static let productionIframeBaseURL = "https://tp-at.prorata.ai"
     
     /// Get API version from environment variable, defaults to v2
     /// Environment variable: GIST_ADS_API_VERSION
@@ -53,6 +57,29 @@ public enum APIConstants {
         case .production:
             envKey = "GIST_ADS_PRODUCTION_URL"
             defaultValue = productionBaseURL
+        }
+        
+        // Check environment variable first, fall back to constant
+        return ProcessInfo.processInfo.environment[envKey] ?? defaultValue
+    }
+    
+    /// Get iframe base URL for environment, checking environment variables first
+    /// - Parameter environment: The environment to get the iframe base URL for
+    /// - Returns: Iframe base URL from environment variable if set, otherwise the default constant
+    static func iframeBaseURL(for environment: GistAdControl.Environment) -> String {
+        let envKey: String
+        let defaultValue: String
+        
+        switch environment {
+        case .staging:
+            envKey = "GIST_ADS_STAGING_IFRAME_URL"
+            defaultValue = stagingIframeBaseURL
+        case .integration:
+            envKey = "GIST_ADS_INTEGRATION_IFRAME_URL"
+            defaultValue = integrationIframeBaseURL
+        case .production:
+            envKey = "GIST_ADS_PRODUCTION_IFRAME_URL"
+            defaultValue = productionIframeBaseURL
         }
         
         // Check environment variable first, fall back to constant

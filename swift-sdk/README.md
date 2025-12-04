@@ -169,6 +169,38 @@ Edit `Constants.swift` in the SDK source to change default URLs.
 
 If no environment variable is set, the SDK uses the default URLs defined internally.
 
+### Overriding Iframe Base URLs
+
+The SDK allows you to override iframe base URLs for each environment, which is useful for testing against staging/integration ad tag servers. The iframe base URL automatically matches the `GistAdControl` environment setting.
+
+**Environment Variables:**
+- `GIST_ADS_STAGING_IFRAME_URL` - Overrides staging environment iframe base URL
+- `GIST_ADS_INTEGRATION_IFRAME_URL` - Overrides integration environment iframe base URL
+- `GIST_ADS_PRODUCTION_IFRAME_URL` - Overrides production environment iframe base URL
+
+**Default Iframe Base URLs:**
+- Staging: `https://tp-at.staging.prorata.ai`
+- Integration: `https://tp-at.integration.prorata.ai`
+- Production: `https://tp-at.prorata.ai`
+
+**Setting Iframe Base URL Environment Variables:**
+
+**Option 1: Xcode Scheme**
+1. Product → Scheme → Edit Scheme...
+2. Run → Arguments → Environment Variables
+3. Add the variable name and value (e.g., `GIST_ADS_STAGING_IFRAME_URL` = `https://custom-staging.example.com`)
+
+**Option 2: Terminal**
+```bash
+export GIST_ADS_STAGING_IFRAME_URL="https://custom-staging.example.com"
+export GIST_ADS_INTEGRATION_IFRAME_URL="https://custom-integration.example.com"
+```
+
+**Option 3: Build-time Constants**
+Edit `Constants.swift` in the SDK source to change default iframe base URLs.
+
+If no environment variable is set, the SDK uses the default iframe base URLs defined internally for each environment.
+
 ### Configuring View Heights
 
 The SDK allows you to override default view heights via environment variables for customizing ad display dimensions:

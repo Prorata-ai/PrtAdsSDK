@@ -21,6 +21,12 @@ public struct GistAdControl: View {
         internal var baseURL: String {
             APIConstants.baseURL(for: self)
         }
+        
+        /// Iframe base URL for the environment (internal)
+        /// Can be overridden via environment variables: GIST_ADS_STAGING_IFRAME_URL, GIST_ADS_INTEGRATION_IFRAME_URL, GIST_ADS_PRODUCTION_IFRAME_URL
+        internal var iframeBaseURL: String {
+            APIConstants.iframeBaseURL(for: self)
+        }
     }
     
     // MARK: - Configuration Properties
@@ -87,7 +93,7 @@ public struct GistAdControl: View {
             } else if let error = error {
                 errorView(error: error)
             } else if let adContent = adContent {
-                AdWebView(htmlContent: adContent)
+                AdWebView(htmlContent: adContent, iframeBaseURL: environment.iframeBaseURL)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: AdViewConstants.configurableMinHeight, maxHeight: AdViewConstants.configurableMaxHeight)
             } else {
