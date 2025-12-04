@@ -8,11 +8,28 @@
 import Foundation
 import SwiftUI
 
-/// Internal API-related constants
-enum APIConstants {
-    static let searchEndpoint = "/v1/search"
+/// API-related constants
+public enum APIConstants {
+    // API version constants (public for use in apps)
+    public static let apiVersionV1 = "v1"
+    public static let apiVersionV2 = "v2"
+    
     static let auctionType = "native"
     static let iframeBaseURL = "https://tp-at.prorata.ai"
+    
+    /// Get API version from environment variable, defaults to v2
+    /// Environment variable: GIST_ADS_API_VERSION
+    /// - Returns: API version string (e.g., "v1", "v2", "v3")
+    public static func apiVersion() -> String {
+        return ProcessInfo.processInfo.environment["GIST_ADS_API_VERSION"] ?? apiVersionV2
+    }
+    
+    /// Get search endpoint for a given API version
+    /// - Parameter version: API version string (e.g., "v1", "v2", "v3")
+    /// - Returns: Endpoint path (e.g., "/v1/search", "/v2/search")
+    static func searchEndpoint(for version: String) -> String {
+        return "/\(version)/search"
+    }
     
     // Environment-specific base URLs (can be overridden via environment variables)
     static let stagingBaseURL = "https://tp-srch-api.staging.prorata.ai"

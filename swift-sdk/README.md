@@ -268,18 +268,63 @@ private let publisherID = "your-publisher-id"
 private let publisherKey = "your-publisher-key"
 ```
 
+## API Version Configuration
+
+The SDK supports multiple API versions (v1 and v2) with extensible architecture for future versions. By default, the SDK uses **v2**.
+
+### Switching API Versions
+
+You can switch between API versions using the `GIST_ADS_API_VERSION` environment variable:
+
+**In Xcode:**
+1. Edit Scheme → Run → Arguments
+2. Add Environment Variable: `GIST_ADS_API_VERSION` = `v1` or `v2`
+
+**In Terminal:**
+```bash
+export GIST_ADS_API_VERSION=v1
+```
+
+**Supported Versions:**
+- `v1` - Returns JSON with `selection` array
+- `v2` - Returns JSON with `selection` array (default)
+- Future versions (v3, v4, etc.) are supported via the extensible architecture
+
+### Version Differences
+
+**v1 Endpoint:**
+- Request: `text`, `geo`, `auction_type`, `ad_type` (optional)
+- Response: JSON with `selection` array containing `iframeUrl`
+
+**v2 Endpoint:**
+- Request: `prompt`, `answer`, `geo`, `auction_type`, `ad_type` (optional), `text` (optional)
+- Response: JSON with `selection` array containing `iframeUrl`
+
 ## API Integration
 
-The SDK communicates with the Gist Ads API automatically. The API endpoint is managed internally by the SDK.
+The SDK communicates with the Gist Ads API automatically. The API endpoint is managed internally by the SDK based on the configured version.
 
 ### Request Format
 
+**v1 Request:**
 ```json
 {
   "text": "search query",
   "geo": "US",
   "auction_type": "native",
   "ad_type": ["image", "text/image", "text"]
+}
+```
+
+**v2 Request:**
+```json
+{
+  "prompt": "search query",
+  "answer": "search query",
+  "geo": "US",
+  "auction_type": "native",
+  "ad_type": ["image", "text/image", "text"],
+  "text": "search query"
 }
 ```
 
@@ -301,8 +346,9 @@ The SDK is organized into several components:
 
 ### Models
 - `AdType` - Enum for supported ad types
-- `SearchRequest` - API request model
-- `SearchResponse` - API response model
+- `SearchRequestV1` - API request model for v1 endpoint
+- `SearchRequestV2` - API request model for v2 endpoint
+- `SearchResponse` - API response model for v2 endpoint
 
 ### Services
 - `AdAPIService` - Handles API communication

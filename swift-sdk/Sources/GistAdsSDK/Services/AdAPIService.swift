@@ -13,11 +13,13 @@ class AdAPIService {
     private let baseURL: String
     private let publisherID: String
     private let publisherKey: String
+    private let apiVersion: String
     
-    init(baseURL: String, publisherID: String, publisherKey: String) {
+    init(baseURL: String, publisherID: String, publisherKey: String, apiVersion: String? = nil) {
         self.baseURL = baseURL
         self.publisherID = publisherID
         self.publisherKey = publisherKey
+        self.apiVersion = apiVersion ?? APIConstants.apiVersion()
     }
     
     /// Fetch ads from the search API
@@ -25,13 +27,15 @@ class AdAPIService {
     ///   - query: The search query text
     ///   - geo: Geographic location (e.g., "US", "GB")
     ///   - adTypes: Optional array of ad types to filter
+    ///   - answer: Optional answer string for v2 (defaults to query if nil)
     /// - Returns: HTML string containing the ad iframe
-    func fetchAd(query: String, geo: String, adTypes: [AdType]?) async throws -> String {
+    func fetchAd(query: String, geo: String, adTypes: [AdType]?, answer: String? = nil) async throws -> String {
         // Construct the API endpoint using URL(string:relativeTo:) for safer construction
         guard let base = URL(string: baseURL) else {
             throw AdAPIError.invalidURL
         }
-        guard let url = URL(string: APIConstants.searchEndpoint, relativeTo: base) else {
+        let endpoint = APIConstants.searchEndpoint(for: apiVersion)
+        guard let url = URL(string: endpoint, relativeTo: base) else {
             throw AdAPIError.invalidURL
         }
         
@@ -42,13 +46,14 @@ class AdAPIService {
         request.setValue(publisherID, forHTTPHeaderField: "Publisher-ID")
         request.setValue(publisherKey, forHTTPHeaderField: "Publisher-Key")
         
-        // Build request body
+        // Build request body using factory function
         let adTypeStrings = adTypes?.map { $0.rawValue }
-        let searchRequest = SearchRequest(
-            text: query,
+        let searchRequest = createSearchRequest(
+            version: apiVersion,
+            query: query,
             geo: geo,
-            auctionType: APIConstants.auctionType,
-            adType: adTypeStrings
+            adTypes: adTypeStrings,
+            answer: answer
         )
         
         let requestBody = try JSONEncoder().encode(searchRequest)
@@ -66,7 +71,24 @@ class AdAPIService {
             throw AdAPIError.httpError(statusCode: httpResponse.statusCode, response: data)
         }
         
-        // Parse JSON response
+        // Handle response based on API version
+        return try handleResponse(version: apiVersion, data: data)
+    }
+    
+    /// Handle API response based on version
+    /// - Parameters:
+    ///   - version: API version string
+    ///   - data: Response data
+    /// - Returns: HTML string containing the ad
+    private func handleResponse(version: String, data: Data) throws -> String {
+        // Both v1 and v2 use the same JSON format with selection array
+        return try parseJSONResponse(data: data)
+    }
+    
+    /// Parse JSON response and extract iframe URL
+    /// - Parameter data: Response data containing JSON
+    /// - Returns: HTML string containing the ad iframe
+    private func parseJSONResponse(data: Data) throws -> String {
         let searchResponse: SearchResponse
         do {
             searchResponse = try JSONDecoder().decode(SearchResponse.self, from: data)

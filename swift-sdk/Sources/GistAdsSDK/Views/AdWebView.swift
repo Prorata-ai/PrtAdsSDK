@@ -10,6 +10,11 @@ import WebKit
 
 // MARK: - Shared Helpers
 
+/// Cached base URL for iframe loading
+private let iframeBaseURL: URL = {
+    URL(string: APIConstants.iframeBaseURL) ?? URL(string: "about:blank")!
+}()
+
 /// Generate wrapped HTML for ad content
 /// - Parameters:
 ///   - content: The ad HTML content to wrap
@@ -64,7 +69,7 @@ private func wrappedHTML(content: String, isIOS: Bool) -> String {
     """
 }
 
-/// Configure WebView with common settings
+/// Configure WebView with common settings (without setting delegate)
 /// - Parameters:
 ///   - webView: The WebView to configure
 ///   - isIOS: Whether this is for iOS (affects configuration)
@@ -73,52 +78,26 @@ private func configureWebView(_ webView: WKWebView, isIOS: Bool) {
     webView.scrollView.isScrollEnabled = false
     webView.isOpaque = false
     webView.backgroundColor = .clear
+    webView.configuration.allowsInlineMediaPlayback = true
     #endif
     
-    webView.navigationDelegate = NavigationDelegate.shared
-    
-    if isIOS {
-        #if os(iOS)
-        webView.configuration.allowsInlineMediaPlayback = true
-        #endif
-    }
     webView.configuration.mediaTypesRequiringUserActionForPlayback = []
 }
 
 // MARK: - Navigation Delegate
 
 // Navigation delegate to allow iframe navigation
-private class NavigationDelegate: NSObject, WKNavigationDelegate {
-    static let shared = NavigationDelegate()
-    
-    private override init() {
-        super.init()
-    }
-    
+// Each web view gets its own delegate instance to avoid conflicts
+fileprivate class NavigationDelegate: NSObject, WKNavigationDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         // Ensure we always call the decision handler exactly once
         // Allow all navigation, including subframes (iframes)
-        let policy: WKNavigationActionPolicy = .allow
-        decisionHandler(policy)
+        decisionHandler(.allow)
     }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         // Always allow navigation responses
         decisionHandler(.allow)
-    }
-    
-    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        // Navigation failed - silently handle
-        // This is expected for cross-origin iframes that may fail to load
-    }
-    
-    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        // Navigation failed - silently handle
-        // This is expected for cross-origin iframes that may fail to load
-    }
-    
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        // Navigation completed successfully
     }
 }
 
@@ -127,23 +106,41 @@ private class NavigationDelegate: NSObject, WKNavigationDelegate {
 struct AdWebView: UIViewRepresentable {
     let htmlContent: String
     
+    func makeCoordinator() -> Coordinator {
+        let coordinator = Coordinator()
+        coordinator.delegate = NavigationDelegate()
+        return coordinator
+    }
+    
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        
+        // Use the coordinator's delegate
+        webView.navigationDelegate = context.coordinator.delegate
+        
         configureWebView(webView, isIOS: true)
         return webView
     }
     
     func updateUIView(_ webView: WKWebView, context: Context) {
-        // Ensure navigation delegate is set
-        if webView.navigationDelegate == nil {
-            configureWebView(webView, isIOS: true)
+        // Ensure navigation delegate is set (use coordinator's delegate)
+        if webView.navigationDelegate !== context.coordinator.delegate {
+            webView.navigationDelegate = context.coordinator.delegate
         }
         
-        // Always reload to ensure content is updated
-        let html = wrappedHTML(content: htmlContent, isIOS: true)
-        let baseURL = URL(string: APIConstants.iframeBaseURL) ?? URL(string: "about:blank")!
-        webView.loadHTMLString(html, baseURL: baseURL)
+        // Only reload if content has changed
+        if context.coordinator.lastContent != htmlContent {
+            context.coordinator.lastContent = htmlContent
+            
+            let html = wrappedHTML(content: htmlContent, isIOS: true)
+            webView.loadHTMLString(html, baseURL: iframeBaseURL)
+        }
+    }
+    
+    class Coordinator {
+        var lastContent: String?
+        fileprivate var delegate: NavigationDelegate?
     }
 }
 
@@ -152,22 +149,41 @@ struct AdWebView: UIViewRepresentable {
 struct AdWebView: NSViewRepresentable {
     let htmlContent: String
     
+    func makeCoordinator() -> Coordinator {
+        let coordinator = Coordinator()
+        coordinator.delegate = NavigationDelegate()
+        return coordinator
+    }
+    
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        
+        // Use the coordinator's delegate
+        webView.navigationDelegate = context.coordinator.delegate
+        
         configureWebView(webView, isIOS: false)
         return webView
     }
     
     func updateNSView(_ webView: WKWebView, context: Context) {
-        // Ensure navigation delegate is set
-        if webView.navigationDelegate == nil {
-            configureWebView(webView, isIOS: false)
+        // Ensure navigation delegate is set (use coordinator's delegate)
+        if webView.navigationDelegate !== context.coordinator.delegate {
+            webView.navigationDelegate = context.coordinator.delegate
         }
         
-        let html = wrappedHTML(content: htmlContent, isIOS: false)
-        let baseURL = URL(string: APIConstants.iframeBaseURL) ?? URL(string: "about:blank")!
-        webView.loadHTMLString(html, baseURL: baseURL)
+        // Only reload if content has changed
+        if context.coordinator.lastContent != htmlContent {
+            context.coordinator.lastContent = htmlContent
+            
+            let html = wrappedHTML(content: htmlContent, isIOS: false)
+            webView.loadHTMLString(html, baseURL: iframeBaseURL)
+        }
+    }
+    
+    class Coordinator {
+        var lastContent: String?
+        fileprivate var delegate: NavigationDelegate?
     }
 }
 #endif

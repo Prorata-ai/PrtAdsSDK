@@ -29,19 +29,23 @@ private let publisherKey = "your-publisher-key"
 The app provides a complete UI to test the Gist Ad Control:
 
 ### Configuration Panel
+
 - **Search Query**: Enter any search query to fetch relevant ads
 - **Geographic Location**: Select US, GB, CA, or AU
 - **Ad Types**: Toggle between image and image/text ads
 - **Reload Button**: Force refresh the ad
 
 ### Live Preview
+
 - Shows the ad in real-time as you change settings
 - Displays loading states
 - Handles errors gracefully
 - Shows "no ad available" when appropriate
 
 ### Example Queries
+
 Quick access buttons for common search queries:
+
 - "best wireless headphones"
 - "affordable laptops for students"
 - "top rated running shoes"
@@ -130,6 +134,28 @@ GistAdControl(
 
 **Note:** The environment parameter controls which API endpoint is used. Use staging or integration for testing, and production for release builds.
 
+### API Version Configuration
+
+The SDK supports both v1 and v2 API endpoints. By default, v2 is used. You can switch versions using the `GIST_ADS_API_VERSION` environment variable.
+
+**Testing with v1:**
+
+1. In Xcode: Product → Scheme → Edit Scheme...
+2. Run → Arguments → Environment Variables
+3. Add: `GIST_ADS_API_VERSION` = `v1`
+4. Run the app
+
+**Testing with v2 (Default):**
+
+- Omit the environment variable, or set `GIST_ADS_API_VERSION` = `v2`
+
+**Version Differences:**
+
+- **v1**: Returns JSON with `selection` array
+- **v2**: Returns JSON with `selection` array, generates iframe HTML (default)
+
+**Note:** The SDK architecture is extensible and supports future API versions. Simply set the `GIST_ADS_API_VERSION` environment variable to the desired version string (e.g., "v3", "v4").
+
 ## Requirements
 
 - iOS 15.0+
@@ -141,4 +167,3 @@ GistAdControl(
 - [SDK Documentation](../README.md)
 - [Integration Guide](../INTEGRATION_GUIDE.md)
 - [Quick Start](../QUICK_START.md)
-

@@ -31,6 +31,7 @@ public struct GistAdControl: View {
     private let geo: String
     private let adTypes: [AdType]?
     private let environment: Environment
+    private let apiVersion: String?
     
     // MARK: - State
     
@@ -50,13 +51,15 @@ public struct GistAdControl: View {
     ///   - geo: Geographic location code (e.g., "US", "GB")
     ///   - adTypes: Optional array of ad types to filter (defaults to all types)
     ///   - environment: API environment (defaults to production)
+    ///   - apiVersion: API version to use (defaults to v2, or from GIST_ADS_API_VERSION env var)
     public init(
         publisherID: String,
         publisherKey: String,
         query: String,
         geo: String = "US",
         adTypes: [AdType]? = nil,
-        environment: Environment = .production
+        environment: Environment = .production,
+        apiVersion: String? = nil
     ) {
         self.publisherID = publisherID
         self.publisherKey = publisherKey
@@ -64,11 +67,13 @@ public struct GistAdControl: View {
         self.geo = geo
         self.adTypes = adTypes
         self.environment = environment
+        self.apiVersion = apiVersion
         
         self.apiService = AdAPIService(
             baseURL: environment.baseURL,
             publisherID: publisherID,
-            publisherKey: publisherKey
+            publisherKey: publisherKey,
+            apiVersion: apiVersion
         )
     }
     
@@ -169,7 +174,8 @@ extension GistAdControl {
         query: String,
         geo: String = "US",
         adTypes: [AdType],
-        environment: Environment = .production
+        environment: Environment = .production,
+        apiVersion: String? = nil
     ) -> GistAdControl {
         GistAdControl(
             publisherID: publisherID,
@@ -177,7 +183,8 @@ extension GistAdControl {
             query: query,
             geo: geo,
             adTypes: adTypes,
-            environment: environment
+            environment: environment,
+            apiVersion: apiVersion
         )
     }
 }

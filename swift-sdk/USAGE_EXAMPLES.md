@@ -206,6 +206,54 @@ GistAdControl(
 
 **Note:** Environment variables take precedence over default URLs. If not set, the SDK uses the default URLs defined internally.
 
+### API Version Configuration
+
+The SDK supports both v1 and v2 API endpoints. By default, v2 is used. You can switch versions using the `GIST_ADS_API_VERSION` environment variable.
+
+**Using v1 Endpoint:**
+
+```swift
+// Set GIST_ADS_API_VERSION="v1" in Xcode scheme or terminal
+GistAdControl(
+    publisherID: Config.publisherID,
+    publisherKey: Config.publisherKey,
+    query: "wireless headphones"
+)
+// v1 returns raw HTML directly
+```
+
+**Using v2 Endpoint (Default):**
+
+```swift
+// Set GIST_ADS_API_VERSION="v2" in Xcode scheme or terminal (or omit for default)
+GistAdControl(
+    publisherID: Config.publisherID,
+    publisherKey: Config.publisherKey,
+    query: "wireless headphones"
+)
+// v2 returns JSON with selection array, generates iframe HTML
+```
+
+**Setting API Version in Xcode:**
+
+1. Product → Scheme → Edit Scheme...
+2. Run → Arguments → Environment Variables
+3. Add: `GIST_ADS_API_VERSION` = `v1` or `v2`
+
+**Setting API Version via Terminal:**
+
+```bash
+export GIST_ADS_API_VERSION=v1
+# Then run your app
+```
+
+**Version Differences:**
+
+- **v1**: Returns JSON with `selection` array. Request includes `text`, `geo`, `auction_type`, `ad_type`.
+- **v2**: Returns JSON with `selection` array. Request includes `prompt`, `answer`, `geo`, `auction_type`, `ad_type`, `text`.
+
+**Note:** The SDK architecture is extensible and supports future API versions (v3, v4, etc.) without code changes. Simply set the `GIST_ADS_API_VERSION` environment variable to the desired version string.
+
 ### Configuring View Heights
 
 You can customize the default ad view heights using environment variables:
@@ -738,4 +786,3 @@ struct OptimizedAdView: View {
 ---
 
 For more examples, see the [Example App](./ExampleApp/) in this repository.
-
