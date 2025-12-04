@@ -61,6 +61,124 @@ GistAdControl(
 )
 ```
 
+## Objective-C / UIKit Usage
+
+The SDK also provides a UIKit wrapper (`GistAdView`) that is fully compatible with Objective-C projects. This allows you to use the SDK in both Swift and Objective-C codebases.
+
+### Basic Usage (Objective-C)
+
+```objc
+#import <GistAdsSDK/GistAdsSDK.h>
+
+// In your view controller
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    GistAdView *adView = [[GistAdView alloc] initWithFrame:CGRectMake(0, 0, 320, 250)];
+    adView.publisherID = @"your-publisher-id";
+    adView.publisherKey = @"your-publisher-key";
+    adView.query = @"best wireless headphones";
+    adView.geo = @"US";
+    adView.delegate = self;
+    
+    [self.view addSubview:adView];
+    [adView loadAd];
+}
+```
+
+### With Delegate (Objective-C)
+
+```objc
+@interface MyViewController () <GistAdViewDelegate>
+@property (nonatomic, strong) GistAdView *adView;
+@end
+
+@implementation MyViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.adView = [[GistAdView alloc] initWithFrame:CGRectMake(0, 0, 320, 250)];
+    self.adView.publisherID = @"your-publisher-id";
+    self.adView.publisherKey = @"your-publisher-key";
+    self.adView.query = @"running shoes";
+    self.adView.geo = @"US";
+    self.adView.environment = GistAdEnvironmentProduction;
+    self.adView.delegate = self;
+    
+    [self.view addSubview:self.adView];
+    [self.adView loadAd];
+}
+
+#pragma mark - GistAdViewDelegate
+
+- (void)adViewDidStartLoading:(GistAdView *)adView {
+    NSLog(@"Ad started loading");
+}
+
+- (void)adViewDidLoad:(GistAdView *)adView {
+    NSLog(@"Ad loaded successfully");
+}
+
+- (void)adView:(GistAdView *)adView didFailWithError:(NSError *)error {
+    NSLog(@"Ad failed to load: %@", error.localizedDescription);
+}
+
+@end
+```
+
+### With Ad Type Filtering (Objective-C)
+
+```objc
+// Filter to only show image and text/image ads
+NSArray<NSNumber *> *adTypes = @[
+    @(GistAdTypeImage),
+    @(GistAdTypeTextImage)
+];
+adView.adTypes = adTypes;
+```
+
+### Swift Usage with UIKit
+
+You can also use `GistAdView` in Swift UIKit projects:
+
+```swift
+import GistAdsSDK
+
+class MyViewController: UIViewController {
+    var adView: GistAdView!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        adView = GistAdView(frame: CGRect(x: 0, y: 0, width: 320, height: 250))
+        adView.publisherID = "your-publisher-id"
+        adView.publisherKey = "your-publisher-key"
+        adView.query = "best wireless headphones"
+        adView.geo = "US"
+        adView.delegate = self
+        adView.environment = .production
+        
+        view.addSubview(adView)
+        adView.loadAd()
+    }
+}
+
+extension MyViewController: GistAdViewDelegate {
+    func adViewDidStartLoading(_ adView: GistAdView) {
+        print("Ad started loading")
+    }
+    
+    func adViewDidLoad(_ adView: GistAdView) {
+        print("Ad loaded successfully")
+    }
+    
+    func adView(_ adView: GistAdView, didFailWithError error: Error) {
+        print("Ad failed: \(error.localizedDescription)")
+    }
+}
+```
+
 ## Configuration
 
 ### Required Parameters
@@ -386,7 +504,8 @@ The SDK is organized into several components:
 - `AdAPIService` - Handles API communication
 
 ### Views
-- `GistAdControl` - Main public SwiftUI view
+- `GistAdControl` - Main public SwiftUI view (Swift/SwiftUI projects)
+- `GistAdView` - UIKit UIView wrapper (Objective-C/UIKit projects)
 - `AdWebView` - Internal WebKit wrapper for rendering
 
 ## Best Practices
