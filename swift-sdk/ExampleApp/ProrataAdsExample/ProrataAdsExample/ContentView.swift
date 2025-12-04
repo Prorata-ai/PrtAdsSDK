@@ -16,8 +16,14 @@ struct ContentView: View {
     // State for dynamic queries
     @State private var searchQuery = "best wireless headphones"
     @State private var selectedGeo = "US"
-    @State private var selectedAdTypes: Set<AdType> = [.image, .textImage]
+    @State private var selectedAdTypes: Set<AdType> = [.image, .textImage, .text]
+    @State private var selectedApiVersion = APIConstants.apiVersionV2
     @State private var refreshTrigger = UUID()
+    
+    // Computed property to optimize adTypes conversion
+    private var adTypesArray: [AdType]? {
+        selectedAdTypes.isEmpty ? nil : Array(selectedAdTypes)
+    }
     
     var body: some View {
         NavigationView {
@@ -115,6 +121,22 @@ struct ContentView: View {
                 }
             }
             
+            // API Version
+            VStack(alignment: .leading, spacing: 8) {
+                Text("API Version")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Picker("API Version", selection: $selectedApiVersion) {
+                    Text("v1").tag(APIConstants.apiVersionV1)
+                    Text("v2").tag(APIConstants.apiVersionV2)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: selectedApiVersion) {
+                    refreshTrigger = UUID()
+                }
+            }
+            
             // Refresh Button
             Button(action: {
                 refreshTrigger = UUID()
@@ -145,8 +167,9 @@ struct ContentView: View {
                     publisherKey: publisherKey,
                     query: searchQuery,
                     geo: selectedGeo,
-                    adTypes: selectedAdTypes.isEmpty ? nil : Array(selectedAdTypes),
-                    environment: .production
+                    adTypes: adTypesArray,
+                    environment: .production,
+                    apiVersion: selectedApiVersion
                 )
                 .frame(height: 250)
                 .background(Color.white)
