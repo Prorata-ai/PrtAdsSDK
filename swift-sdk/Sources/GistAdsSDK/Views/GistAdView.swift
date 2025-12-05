@@ -387,7 +387,7 @@ private class NavigationDelegate: NSObject, WKNavigationDelegate {
 // MARK: - Associated Keys
 
 private struct AssociatedKeys {
-    static var navigationDelegate = "navigationDelegate"
+    static var navigationDelegate: UInt8 = 0
 }
 
 #endif // os(iOS)
