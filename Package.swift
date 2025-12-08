@@ -16,12 +16,12 @@ let package = Package(
         .target(
             name: "GistAdsSDK",
             dependencies: [],
-            path: "Sources/GistAdsSDK"
+            path: "swift-sdk/Sources/GistAdsSDK"
         ),
         .testTarget(
             name: "GistAdsSDKTests",
             dependencies: ["GistAdsSDK"],
-            path: "Tests/GistAdsSDKTests"
+            path: "swift-sdk/Tests/GistAdsSDKTests"
         ),
     ]
 )

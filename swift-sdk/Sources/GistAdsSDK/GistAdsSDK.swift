@@ -16,3 +16,9 @@ public struct GistAdsSDK {
 // Export public types
 public typealias AdControl = GistAdControl
 
+// Objective-C compatible types are also exported:
+// - GistAdView: UIKit UIView for Objective-C/UIKit projects
+// - GistAdViewDelegate: Delegate protocol for ad loading callbacks
+// - GistAdEnvironment: Objective-C compatible environment enum
+// - GistAdType: Objective-C compatible ad type enum
+

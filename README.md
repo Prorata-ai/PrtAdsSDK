@@ -54,7 +54,7 @@ struct ContentView: View {
 **Installation** (Swift Package Manager):
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-org/gist-ads-sdk-swift.git", from: "1.0.0")
+    .package(url: "https://github.com/Prorata-ai/PrtAdsSDK.git", from: "1.0.0")
 ]
 ```
 

@@ -13,24 +13,115 @@ A native Swift SDK for integrating Gist AI Search Ads into your iOS and macOS ap
 
 ## Installation
 
-### Swift Package Manager
+### Requirements
 
-Add the package to your `Package.swift`:
+Before installing, ensure your project meets these requirements:
+
+- **iOS 15.0+** deployment target (or macOS 12.0+)
+- **Xcode 14.0+**
+- **Swift 5.9+**
+
+### Method 1: Using Xcode (Recommended)
+
+This is the easiest method for most iOS projects:
+
+1. **Open your iOS project** in Xcode
+
+2. **Select your project** in the Project Navigator (the top-level blue icon)
+
+3. **Select your app target** in the main editor area
+
+4. **Go to the "Package Dependencies" tab** (or "Swift Packages" in older Xcode versions)
+
+5. **Click the "+" button** at the bottom left (or use **File → Add Packages...** from the menu)
+
+6. **Enter the package URL** in the search field:
+
+   ```
+   https://github.com/Prorata-ai/PrtAdsSDK.git
+   ```
+
+7. **Click "Add Package"** - Xcode will fetch the package
+
+8. **Select the version**:
+   - Choose **"Up to Next Major Version"** with `1.0.0`
+   - Or select a specific version/tag from the dropdown
+
+9. **Select the product**:
+   - Check **"GistAdsSDK"** in the product list
+   - Choose your target(s) under **"Add to Target"** (usually your app target)
+
+10. **Click "Add Package"** to complete the installation
+
+The package will now appear in your project's Package Dependencies and be available for import.
+
+### Method 2: Using Package.swift
+
+If your project uses a `Package.swift` file (Swift Package Manager projects):
+
+1. **Open your `Package.swift` file**
+
+2. **Add the dependency** to the `dependencies` array:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-org/gist-ads-sdk-swift.git", from: "1.0.0")
+    .package(url: "https://github.com/Prorata-ai/PrtAdsSDK.git", from: "1.0.0")
 ]
 ```
 
-Or in Xcode:
-1. File → Add Packages...
-2. Enter the package URL
-3. Select version and add to your target
+3. **Add the product to your target's dependencies**:
+
+```swift
+.target(
+    name: "YourTarget",
+    dependencies: [
+        .product(name: "GistAdsSDK", package: "PrtAdsSDK")
+    ]
+)
+```
+
+4. **Resolve packages**:
+   - In Xcode: **File → Packages → Resolve Package Versions**
+   - Or run: `swift package resolve` from terminal
+
+### Troubleshooting
+
+**Package not found?**
+
+- Ensure you're connected to the internet
+- Verify the repository URL is correct: `https://github.com/Prorata-ai/PrtAdsSDK.git`
+- Check that the version tag `1.0.0` exists in the repository
+
+**Version not found?**
+
+- Verify the tag exists: `git ls-remote --tags https://github.com/Prorata-ai/PrtAdsSDK.git`
+- Try using a different version requirement (e.g., `.upToNextMajor(from: "1.0.0")`)
+
+**Build errors after adding?**
+
+- Ensure your deployment target is iOS 15.0+ (check in Build Settings)
+- Clean build folder: **Product → Clean Build Folder** (⇧⌘K)
+- Verify the package resolved correctly in Package Dependencies
+
+**Import errors?**
+
+- Make sure you've added the package to your target (step 9 in Method 1)
+- Check that `import GistAdsSDK` is spelled correctly
+- Try restarting Xcode if the package was just added
 
 ## Quick Start
 
-### Basic Usage
+After installing the package, you can start using it immediately:
+
+### 1. Import the SDK
+
+Add the import statement at the top of your Swift file:
+
+```swift
+import GistAdsSDK
+```
+
+### 2. Basic Usage (SwiftUI)
 
 ```swift
 import SwiftUI
@@ -49,6 +140,28 @@ struct ContentView: View {
 }
 ```
 
+### 3. Basic Usage (UIKit)
+
+```swift
+import UIKit
+import GistAdsSDK
+
+class ViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        let adView = GistAdView(frame: CGRect(x: 0, y: 0, width: 320, height: 250))
+        adView.publisherID = "your-publisher-id"
+        adView.publisherKey = "your-publisher-key"
+        adView.query = "best wireless headphones"
+        adView.geo = "US"
+        
+        view.addSubview(adView)
+        adView.loadAd()
+    }
+}
+```
+
 ### With Ad Type Filtering
 
 ```swift
@@ -59,6 +172,124 @@ GistAdControl(
     geo: "US",
     adTypes: [.image, .textImage]
 )
+```
+
+## Objective-C / UIKit Usage
+
+The SDK also provides a UIKit wrapper (`GistAdView`) that is fully compatible with Objective-C projects. This allows you to use the SDK in both Swift and Objective-C codebases.
+
+### Basic Usage (Objective-C)
+
+```objc
+#import <GistAdsSDK/GistAdsSDK.h>
+
+// In your view controller
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    GistAdView *adView = [[GistAdView alloc] initWithFrame:CGRectMake(0, 0, 320, 250)];
+    adView.publisherID = @"your-publisher-id";
+    adView.publisherKey = @"your-publisher-key";
+    adView.query = @"best wireless headphones";
+    adView.geo = @"US";
+    adView.delegate = self;
+    
+    [self.view addSubview:adView];
+    [adView loadAd];
+}
+```
+
+### With Delegate (Objective-C)
+
+```objc
+@interface MyViewController () <GistAdViewDelegate>
+@property (nonatomic, strong) GistAdView *adView;
+@end
+
+@implementation MyViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.adView = [[GistAdView alloc] initWithFrame:CGRectMake(0, 0, 320, 250)];
+    self.adView.publisherID = @"your-publisher-id";
+    self.adView.publisherKey = @"your-publisher-key";
+    self.adView.query = @"running shoes";
+    self.adView.geo = @"US";
+    self.adView.environment = GistAdEnvironmentProduction;
+    self.adView.delegate = self;
+    
+    [self.view addSubview:self.adView];
+    [self.adView loadAd];
+}
+
+#pragma mark - GistAdViewDelegate
+
+- (void)adViewDidStartLoading:(GistAdView *)adView {
+    NSLog(@"Ad started loading");
+}
+
+- (void)adViewDidLoad:(GistAdView *)adView {
+    NSLog(@"Ad loaded successfully");
+}
+
+- (void)adView:(GistAdView *)adView didFailWithError:(NSError *)error {
+    NSLog(@"Ad failed to load: %@", error.localizedDescription);
+}
+
+@end
+```
+
+### With Ad Type Filtering (Objective-C)
+
+```objc
+// Filter to only show image and text/image ads
+NSArray<NSNumber *> *adTypes = @[
+    @(GistAdTypeImage),
+    @(GistAdTypeTextImage)
+];
+adView.adTypes = adTypes;
+```
+
+### Swift Usage with UIKit
+
+You can also use `GistAdView` in Swift UIKit projects:
+
+```swift
+import GistAdsSDK
+
+class MyViewController: UIViewController {
+    var adView: GistAdView!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        adView = GistAdView(frame: CGRect(x: 0, y: 0, width: 320, height: 250))
+        adView.publisherID = "your-publisher-id"
+        adView.publisherKey = "your-publisher-key"
+        adView.query = "best wireless headphones"
+        adView.geo = "US"
+        adView.delegate = self
+        adView.environment = .production
+        
+        view.addSubview(adView)
+        adView.loadAd()
+    }
+}
+
+extension MyViewController: GistAdViewDelegate {
+    func adViewDidStartLoading(_ adView: GistAdView) {
+        print("Ad started loading")
+    }
+    
+    func adViewDidLoad(_ adView: GistAdView) {
+        print("Ad loaded successfully")
+    }
+    
+    func adView(_ adView: GistAdView, didFailWithError error: Error) {
+        print("Ad failed: \(error.localizedDescription)")
+    }
+}
 ```
 
 ## Configuration
@@ -148,6 +379,7 @@ The environment parameter controls which API endpoint the SDK uses. Base URLs ca
 The SDK allows you to override base URLs via environment variables for testing and development:
 
 **Environment Variables:**
+
 - `GIST_ADS_STAGING_URL` - Overrides staging environment base URL
 - `GIST_ADS_INTEGRATION_URL` - Overrides integration environment base URL
 - `GIST_ADS_PRODUCTION_URL` - Overrides production environment base URL
@@ -155,11 +387,13 @@ The SDK allows you to override base URLs via environment variables for testing a
 **Setting Environment Variables:**
 
 **Option 1: Xcode Scheme**
+
 1. Product → Scheme → Edit Scheme...
 2. Run → Arguments → Environment Variables
 3. Add the variable name and value
 
 **Option 2: Terminal**
+
 ```bash
 export GIST_ADS_PRODUCTION_URL="https://custom-api.example.com"
 ```
@@ -174,11 +408,13 @@ If no environment variable is set, the SDK uses the default URLs defined interna
 The SDK allows you to override iframe base URLs for each environment, which is useful for testing against staging/integration ad tag servers. The iframe base URL automatically matches the `GistAdControl` environment setting.
 
 **Environment Variables:**
+
 - `GIST_ADS_STAGING_IFRAME_URL` - Overrides staging environment iframe base URL
 - `GIST_ADS_INTEGRATION_IFRAME_URL` - Overrides integration environment iframe base URL
 - `GIST_ADS_PRODUCTION_IFRAME_URL` - Overrides production environment iframe base URL
 
 **Default Iframe Base URLs:**
+
 - Staging: `https://tp-at.staging.prorata.ai`
 - Integration: `https://tp-at.integration.prorata.ai`
 - Production: `https://tp-at.prorata.ai`
@@ -186,11 +422,13 @@ The SDK allows you to override iframe base URLs for each environment, which is u
 **Setting Iframe Base URL Environment Variables:**
 
 **Option 1: Xcode Scheme**
+
 1. Product → Scheme → Edit Scheme...
 2. Run → Arguments → Environment Variables
 3. Add the variable name and value (e.g., `GIST_ADS_STAGING_IFRAME_URL` = `https://custom-staging.example.com`)
 
 **Option 2: Terminal**
+
 ```bash
 export GIST_ADS_STAGING_IFRAME_URL="https://custom-staging.example.com"
 export GIST_ADS_INTEGRATION_IFRAME_URL="https://custom-integration.example.com"
@@ -206,6 +444,7 @@ If no environment variable is set, the SDK uses the default iframe base URLs def
 The SDK allows you to override default view heights via environment variables for customizing ad display dimensions:
 
 **Environment Variables:**
+
 - `GIST_ADS_DEFAULT_MIN_HEIGHT` - Overrides default minimum height (default: 100)
 - `GIST_ADS_DEFAULT_MAX_HEIGHT` - Overrides default maximum height (default: 300)
 - `GIST_ADS_IFRAME_MIN_HEIGHT` - Overrides iframe minimum height (default: 250)
@@ -213,11 +452,13 @@ The SDK allows you to override default view heights via environment variables fo
 **Setting Height Environment Variables:**
 
 **Option 1: Xcode Scheme**
+
 1. Product → Scheme → Edit Scheme...
 2. Run → Arguments → Environment Variables
 3. Add the variable name and numeric value (e.g., `GIST_ADS_DEFAULT_MIN_HEIGHT` = `150`)
 
 **Option 2: Terminal**
+
 ```bash
 export GIST_ADS_DEFAULT_MIN_HEIGHT="150"
 export GIST_ADS_DEFAULT_MAX_HEIGHT="400"
@@ -227,6 +468,7 @@ export GIST_ADS_DEFAULT_MAX_HEIGHT="400"
 Edit `Constants.swift` in the SDK source to change default height values.
 
 **Notes:**
+
 - Values must be positive numbers (negative values fall back to defaults)
 - Invalid values (non-numeric strings) fall back to defaults
 - If no environment variable is set, the SDK uses the default height values defined internally
@@ -309,15 +551,18 @@ The SDK supports multiple API versions (v1 and v2) with extensible architecture 
 You can switch between API versions using the `GIST_ADS_API_VERSION` environment variable:
 
 **In Xcode:**
+
 1. Edit Scheme → Run → Arguments
 2. Add Environment Variable: `GIST_ADS_API_VERSION` = `v1` or `v2`
 
 **In Terminal:**
+
 ```bash
 export GIST_ADS_API_VERSION=v1
 ```
 
 **Supported Versions:**
+
 - `v1` - Returns JSON with `selection` array
 - `v2` - Returns JSON with `selection` array (default)
 - Future versions (v3, v4, etc.) are supported via the extensible architecture
@@ -325,10 +570,12 @@ export GIST_ADS_API_VERSION=v1
 ### Version Differences
 
 **v1 Endpoint:**
+
 - Request: `text`, `geo`, `auction_type`, `ad_type` (optional)
 - Response: JSON with `selection` array containing `iframeUrl`
 
 **v2 Endpoint:**
+
 - Request: `prompt`, `answer`, `geo`, `auction_type`, `ad_type` (optional), `text` (optional)
 - Response: JSON with `selection` array containing `iframeUrl`
 
@@ -339,6 +586,7 @@ The SDK communicates with the Gist Ads API automatically. The API endpoint is ma
 ### Request Format
 
 **v1 Request:**
+
 ```json
 {
   "text": "search query",
@@ -349,6 +597,7 @@ The SDK communicates with the Gist Ads API automatically. The API endpoint is ma
 ```
 
 **v2 Request:**
+
 ```json
 {
   "prompt": "search query",
@@ -377,16 +626,20 @@ The SDK communicates with the Gist Ads API automatically. The API endpoint is ma
 The SDK is organized into several components:
 
 ### Models
+
 - `AdType` - Enum for supported ad types
 - `SearchRequestV1` - API request model for v1 endpoint
 - `SearchRequestV2` - API request model for v2 endpoint
 - `SearchResponse` - API response model for v2 endpoint
 
 ### Services
+
 - `AdAPIService` - Handles API communication
 
 ### Views
-- `GistAdControl` - Main public SwiftUI view
+
+- `GistAdControl` - Main public SwiftUI view (Swift/SwiftUI projects)
+- `GistAdView` - UIKit UIView wrapper (Objective-C/UIKit projects)
 - `AdWebView` - Internal WebKit wrapper for rendering
 
 ## Best Practices
@@ -420,7 +673,7 @@ The SDK is organized into several components:
 
 For issues, questions, or feature requests:
 
-- Email: support@gist.com
+- Email: <support@gist.com>
 - Documentation: [Integration Guide](INTEGRATION_GUIDE.md)
 
 ## License
@@ -430,6 +683,7 @@ Copyright © 2024 Gist. All rights reserved.
 ## Changelog
 
 ### Version 1.0.0
+
 - Initial release
 - SwiftUI ad control component
 - Support for image and image/text ad types
