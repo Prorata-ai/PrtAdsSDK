@@ -181,7 +181,7 @@ The SDK also provides a UIKit wrapper (`GistAdView`) that is fully compatible wi
 ### Basic Usage (Objective-C)
 
 ```objc
-#import <GistAdsSDK/GistAdsSDK.h>
+@import GistAdsSDK;
 
 // In your view controller
 - (void)viewDidLoad {
