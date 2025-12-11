@@ -21,6 +21,27 @@ public enum APIConstants {
     static let integrationIframeBaseURL = "https://tp-at.integration.prorata.ai"
     static let productionIframeBaseURL = "https://tp-at.prorata.ai"
     
+    /// Allowed ad server domains for URL filtering (used in click handling)
+    /// Derived from iframe base URLs, including any environment variable overrides
+    static var allowedAdDomains: [String] {
+        let staticDomains = [stagingIframeBaseURL, integrationIframeBaseURL, productionIframeBaseURL]
+        let dynamicDomains = [
+            iframeBaseURL(for: .staging),
+            iframeBaseURL(for: .integration),
+            iframeBaseURL(for: .production)
+        ]
+        return Array(Set(staticDomains + dynamicDomains))
+            .compactMap { URL(string: $0)?.host }
+    }
+    
+    /// Check if a URL host is an allowed ad server domain
+    /// - Parameter url: The URL to check
+    /// - Returns: True if the URL's host is an allowed ad domain
+    static func isAllowedAdDomain(_ url: URL) -> Bool {
+        guard let host = url.host else { return false }
+        return allowedAdDomains.contains(host)
+    }
+    
     /// Get API version from environment variable, defaults to v2
     /// Environment variable: GIST_ADS_API_VERSION
     /// - Returns: API version string (e.g., "v1", "v2", "v3")

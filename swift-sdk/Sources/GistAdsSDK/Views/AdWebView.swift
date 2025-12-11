@@ -8,6 +8,12 @@
 import SwiftUI
 import WebKit
 
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
 // MARK: - Shared Helpers
 
 /// Generate wrapped HTML for ad content
@@ -64,10 +70,7 @@ private func wrappedHTML(content: String, isIOS: Bool) -> String {
     """
 }
 
-/// Configure WebView with common settings (without setting delegate)
-/// - Parameters:
-///   - webView: The WebView to configure
-///   - isIOS: Whether this is for iOS (affects configuration)
+/// Configure WebView with common settings
 private func configureWebView(_ webView: WKWebView, isIOS: Bool) {
     #if os(iOS)
     webView.scrollView.isScrollEnabled = false
@@ -79,117 +82,177 @@ private func configureWebView(_ webView: WKWebView, isIOS: Bool) {
     webView.configuration.mediaTypesRequiringUserActionForPlayback = []
 }
 
-// MARK: - Navigation Delegate
+/// Create and configure a new WKWebView with the given delegate
+private func createWebView(delegate: NavigationDelegate?, isIOS: Bool) -> WKWebView {
+    let configuration = WKWebViewConfiguration()
+    let webView = WKWebView(frame: .zero, configuration: configuration)
+    webView.navigationDelegate = delegate
+    configureWebView(webView, isIOS: isIOS)
+    return webView
+}
 
-// Navigation delegate to allow iframe navigation
-// Each web view gets its own delegate instance to avoid conflicts
-fileprivate class NavigationDelegate: NSObject, WKNavigationDelegate {
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        // Ensure we always call the decision handler exactly once
-        // Allow all navigation, including subframes (iframes)
-        decisionHandler(.allow)
+/// Update the webview with new content and callbacks
+private func updateWebView(
+    _ webView: WKWebView,
+    coordinator: AdWebViewCoordinator,
+    htmlContent: String,
+    baseURL: URL,
+    onAdClicked: ((URL) -> Void)?,
+    onContentHeightChanged: ((CGFloat) -> Void)?,
+    isIOS: Bool
+) {
+    // Ensure navigation delegate is set
+    if webView.navigationDelegate !== coordinator.delegate {
+        webView.navigationDelegate = coordinator.delegate
     }
     
-    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
-        // Always allow navigation responses
-        decisionHandler(.allow)
+    // Update callbacks in case they changed
+    coordinator.delegate?.onAdClicked = onAdClicked
+    coordinator.delegate?.onContentHeightChanged = onContentHeightChanged
+    
+    // Only reload if content has changed
+    if coordinator.lastContent != htmlContent {
+        coordinator.lastContent = htmlContent
+        let html = wrappedHTML(content: htmlContent, isIOS: isIOS)
+        webView.loadHTMLString(html, baseURL: baseURL)
     }
 }
 
+// MARK: - Shared Coordinator
+
+/// Coordinator for AdWebView that holds the navigation delegate and tracks content state
+class AdWebViewCoordinator {
+    var lastContent: String?
+    fileprivate var delegate: NavigationDelegate?
+    
+    fileprivate init(onAdClicked: ((URL) -> Void)?, onContentHeightChanged: ((CGFloat) -> Void)?) {
+        let navDelegate = NavigationDelegate()
+        navDelegate.onAdClicked = onAdClicked
+        navDelegate.onContentHeightChanged = onContentHeightChanged
+        self.delegate = navDelegate
+    }
+}
+
+// MARK: - Navigation Delegate
+
+/// Navigation delegate to handle iframe navigation, click events, and content height
+fileprivate class NavigationDelegate: NSObject, WKNavigationDelegate {
+    var onAdClicked: ((URL) -> Void)?
+    var onContentHeightChanged: ((CGFloat) -> Void)?
+    
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.allow)
+            return
+        }
+        
+        // Allow navigation for non-http schemes (about:blank, etc.)
+        let scheme = url.scheme?.lowercased() ?? ""
+        if scheme != "http" && scheme != "https" {
+            decisionHandler(.allow)
+            return
+        }
+        
+        // Allow navigation for allowed ad domains
+        if APIConstants.isAllowedAdDomain(url) {
+            decisionHandler(.allow)
+            return
+        }
+        
+        // External URL clicked - cancel navigation and handle
+        decisionHandler(.cancel)
+        handleExternalURL(url)
+    }
+    
+    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+        decisionHandler(.allow)
+    }
+    
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Measure content height after navigation finishes
+        webView.evaluateJavaScript("document.documentElement.scrollHeight") { [weak self] result, error in
+            guard let self = self,
+                  error == nil,
+                  let height = result as? CGFloat else {
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.onContentHeightChanged?(height)
+            }
+        }
+    }
+    
+    private func handleExternalURL(_ url: URL) {
+        if let onAdClicked = onAdClicked {
+            DispatchQueue.main.async {
+                onAdClicked(url)
+            }
+        } else {
+            // Default behavior: open in default browser
+            DispatchQueue.main.async {
+                #if os(iOS)
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                #elseif os(macOS)
+                NSWorkspace.shared.open(url)
+                #endif
+            }
+        }
+    }
+}
+
+// MARK: - Platform-Specific AdWebView
+
 #if os(iOS)
-/// SwiftUI wrapper for WKWebView to render ads
+
+/// SwiftUI wrapper for WKWebView to render ads (iOS)
 struct AdWebView: UIViewRepresentable {
     let htmlContent: String
     let iframeBaseURL: String
+    var onAdClicked: ((URL) -> Void)?
+    var onContentHeightChanged: ((CGFloat) -> Void)?
     
     private var baseURL: URL {
         URL(string: iframeBaseURL) ?? URL(string: "about:blank")!
     }
     
-    func makeCoordinator() -> Coordinator {
-        let coordinator = Coordinator()
-        coordinator.delegate = NavigationDelegate()
-        return coordinator
+    func makeCoordinator() -> AdWebViewCoordinator {
+        AdWebViewCoordinator(onAdClicked: onAdClicked, onContentHeightChanged: onContentHeightChanged)
     }
     
     func makeUIView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        
-        // Use the coordinator's delegate
-        webView.navigationDelegate = context.coordinator.delegate
-        
-        configureWebView(webView, isIOS: true)
-        return webView
+        createWebView(delegate: context.coordinator.delegate, isIOS: true)
     }
     
     func updateUIView(_ webView: WKWebView, context: Context) {
-        // Ensure navigation delegate is set (use coordinator's delegate)
-        if webView.navigationDelegate !== context.coordinator.delegate {
-            webView.navigationDelegate = context.coordinator.delegate
-        }
-        
-        // Only reload if content has changed
-        if context.coordinator.lastContent != htmlContent {
-            context.coordinator.lastContent = htmlContent
-            
-            let html = wrappedHTML(content: htmlContent, isIOS: true)
-            webView.loadHTMLString(html, baseURL: baseURL)
-        }
-    }
-    
-    class Coordinator {
-        var lastContent: String?
-        fileprivate var delegate: NavigationDelegate?
+        updateWebView(webView, coordinator: context.coordinator, htmlContent: htmlContent, baseURL: baseURL, onAdClicked: onAdClicked, onContentHeightChanged: onContentHeightChanged, isIOS: true)
     }
 }
 
 #elseif os(macOS)
+
 /// SwiftUI wrapper for WKWebView to render ads (macOS)
 struct AdWebView: NSViewRepresentable {
     let htmlContent: String
     let iframeBaseURL: String
+    var onAdClicked: ((URL) -> Void)?
+    var onContentHeightChanged: ((CGFloat) -> Void)?
     
     private var baseURL: URL {
         URL(string: iframeBaseURL) ?? URL(string: "about:blank")!
     }
     
-    func makeCoordinator() -> Coordinator {
-        let coordinator = Coordinator()
-        coordinator.delegate = NavigationDelegate()
-        return coordinator
+    func makeCoordinator() -> AdWebViewCoordinator {
+        AdWebViewCoordinator(onAdClicked: onAdClicked, onContentHeightChanged: onContentHeightChanged)
     }
     
     func makeNSView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        
-        // Use the coordinator's delegate
-        webView.navigationDelegate = context.coordinator.delegate
-        
-        configureWebView(webView, isIOS: false)
-        return webView
+        createWebView(delegate: context.coordinator.delegate, isIOS: false)
     }
     
     func updateNSView(_ webView: WKWebView, context: Context) {
-        // Ensure navigation delegate is set (use coordinator's delegate)
-        if webView.navigationDelegate !== context.coordinator.delegate {
-            webView.navigationDelegate = context.coordinator.delegate
-        }
-        
-        // Only reload if content has changed
-        if context.coordinator.lastContent != htmlContent {
-            context.coordinator.lastContent = htmlContent
-            
-            let html = wrappedHTML(content: htmlContent, isIOS: false)
-            webView.loadHTMLString(html, baseURL: baseURL)
-        }
-    }
-    
-    class Coordinator {
-        var lastContent: String?
-        fileprivate var delegate: NavigationDelegate?
+        updateWebView(webView, coordinator: context.coordinator, htmlContent: htmlContent, baseURL: baseURL, onAdClicked: onAdClicked, onContentHeightChanged: onContentHeightChanged, isIOS: false)
     }
 }
-#endif
 
+#endif

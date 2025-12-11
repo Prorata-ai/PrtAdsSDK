@@ -9,7 +9,7 @@ import Foundation
 
 /// Version information for the SDK
 public struct GistAdsSDK {
-    public static let version = "1.0.0"
+    public static let version = "1.0.1"
     public static let name = "GistAdsSDK"
 }
 
