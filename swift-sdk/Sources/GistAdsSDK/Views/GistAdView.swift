@@ -425,12 +425,9 @@ private class NavigationDelegate: NSObject, WKNavigationDelegate {
     private func handleExternalURL(_ url: URL) {
         guard let adView = adView else { return }
         
-        // Check if delegate implements the click handler
-        if let delegate = adView.delegate,
-           delegate.responds(to: #selector(GistAdViewDelegate.adView(_:didClickURL:))) {
-            delegate.adView?(adView, didClickURL: url)
-        } else {
-            // Default behavior: open in Safari
+        // Try calling the delegate method - returns Void? (nil if not implemented)
+        if adView.delegate?.adView?(adView, didClickURL: url) == nil {
+            // Delegate method not implemented, open in Safari
             DispatchQueue.main.async {
                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
             }
