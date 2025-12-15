@@ -30,7 +30,7 @@ final class ProrataAdsSDKTests: XCTestCase {
     }
     
     func testSearchRequestEncoding() throws {
-        let request = SearchRequest(
+        let request = SearchRequestV1(
             text: "test query",
             geo: "US",
             auctionType: "native",
@@ -50,7 +50,7 @@ final class ProrataAdsSDKTests: XCTestCase {
     }
     
     func testSearchRequestWithoutAdTypes() throws {
-        let request = SearchRequest(
+        let request = SearchRequestV1(
             text: "test query",
             geo: "GB",
             auctionType: "native",
@@ -97,7 +97,7 @@ final class ProrataAdsSDKTests: XCTestCase {
     }
     
     func testSDKVersion() {
-        XCTAssertEqual(GistAdsSDK.version, "1.0.0")
+        XCTAssertEqual(GistAdsSDK.version, "1.0.1")
         XCTAssertEqual(GistAdsSDK.name, "GistAdsSDK")
     }
     

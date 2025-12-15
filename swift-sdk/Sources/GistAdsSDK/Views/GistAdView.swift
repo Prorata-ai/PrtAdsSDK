@@ -287,12 +287,13 @@ import WebKit
         webView.configuration.allowsInlineMediaPlayback = true
         webView.configuration.mediaTypesRequiringUserActionForPlayback = []
         
-        // Setup navigation delegate
-        let delegate = NavigationDelegate()
-        webView.navigationDelegate = delegate
+        // Setup navigation delegate with reference to this ad view
+        let navDelegate = NavigationDelegate()
+        navDelegate.adView = self
+        webView.navigationDelegate = navDelegate
         
         // Store delegate to prevent deallocation
-        objc_setAssociatedObject(webView, &AssociatedKeys.navigationDelegate, delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(webView, &AssociatedKeys.navigationDelegate, navDelegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         
         addSubview(webView)
         NSLayoutConstraint.activate([
@@ -375,12 +376,62 @@ import WebKit
 // MARK: - Navigation Delegate
 
 private class NavigationDelegate: NSObject, WKNavigationDelegate {
+    weak var adView: GistAdView?
+    
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        decisionHandler(.allow)
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.allow)
+            return
+        }
+        
+        // Allow navigation for ad server domains and non-http schemes (about:blank, etc.)
+        let scheme = url.scheme?.lowercased() ?? ""
+        if scheme != "http" && scheme != "https" {
+            decisionHandler(.allow)
+            return
+        }
+        
+        // Allow navigation for allowed ad domains
+        if APIConstants.isAllowedAdDomain(url) {
+            decisionHandler(.allow)
+            return
+        }
+        
+        // External URL clicked - cancel navigation and notify delegate
+        decisionHandler(.cancel)
+        handleExternalURL(url)
     }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         decisionHandler(.allow)
+    }
+    
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Measure content height after navigation finishes
+        webView.evaluateJavaScript("document.documentElement.scrollHeight") { [weak self] result, error in
+            guard let self = self,
+                  let adView = self.adView,
+                  error == nil,
+                  let height = result as? CGFloat else {
+                return
+            }
+            
+            DispatchQueue.main.async {
+                adView.delegate?.adView?(adView, didLoadWithContentHeight: height)
+            }
+        }
+    }
+    
+    private func handleExternalURL(_ url: URL) {
+        guard let adView = adView else { return }
+        
+        // Try calling the delegate method - returns Void? (nil if not implemented)
+        if adView.delegate?.adView?(adView, didClickURL: url) == nil {
+            // Delegate method not implemented, open in Safari
+            DispatchQueue.main.async {
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+            }
+        }
     }
 }
 

@@ -23,6 +23,20 @@ import Foundation
     ///   - adView: The ad view that failed
     ///   - error: The error that occurred
     @objc optional func adView(_ adView: GistAdView, didFailWithError error: Error)
+    
+    /// Called when the user clicks an ad link that navigates to an external URL
+    /// If this method is not implemented, the URL will be opened in Safari by default.
+    /// - Parameters:
+    ///   - adView: The ad view where the click occurred
+    ///   - url: The destination URL that was clicked
+    @objc optional func adView(_ adView: GistAdView, didClickURL url: URL)
+    
+    /// Called when the ad content has loaded and the actual content height is known
+    /// Use this to resize your ad container to match the actual ad content size.
+    /// - Parameters:
+    ///   - adView: The ad view that loaded
+    ///   - height: The actual content height in points
+    @objc optional func adView(_ adView: GistAdView, didLoadWithContentHeight height: CGFloat)
 }
 
 #endif // os(iOS)

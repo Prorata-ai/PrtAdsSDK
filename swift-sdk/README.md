@@ -292,6 +292,94 @@ extension MyViewController: GistAdViewDelegate {
 }
 ```
 
+## Ad Click Handling
+
+The SDK intercepts clicks on external URLs within ads and provides callbacks so you can handle them appropriately (e.g., open in Safari, in-app browser, or custom handling).
+
+### SwiftUI (GistAdControl)
+
+```swift
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "best wireless headphones",
+    onAdClicked: { url in
+        // Handle the clicked URL
+        print("Ad clicked: \(url)")
+        // Default behavior if not provided: opens in Safari
+    }
+)
+```
+
+### UIKit / Objective-C (GistAdView)
+
+```swift
+// Swift
+extension MyViewController: GistAdViewDelegate {
+    func adView(_ adView: GistAdView, didClickURL url: URL) {
+        // Handle the clicked URL
+        UIApplication.shared.open(url)
+    }
+}
+```
+
+```objc
+// Objective-C
+- (void)adView:(GistAdView *)adView didClickURL:(NSURL *)url {
+    // Handle the clicked URL
+    [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+}
+```
+
+If the delegate method is not implemented, the URL will automatically open in Safari.
+
+## Content Height Detection
+
+The SDK reports the actual rendered height of ad content, allowing you to dynamically resize the ad container to eliminate gaps between the ad and surrounding content.
+
+### SwiftUI (GistAdControl)
+
+```swift
+struct AdContainerView: View {
+    @State private var adHeight: CGFloat = 250  // Default height
+    
+    var body: some View {
+        GistAdControl(
+            publisherID: "your-publisher-id",
+            publisherKey: "your-publisher-key",
+            query: "best wireless headphones",
+            onContentHeightChanged: { height in
+                // Update the container height to match ad content
+                adHeight = height
+            }
+        )
+        .frame(height: adHeight)
+    }
+}
+```
+
+### UIKit / Objective-C (GistAdView)
+
+```swift
+// Swift
+extension MyViewController: GistAdViewDelegate {
+    func adView(_ adView: GistAdView, didLoadWithContentHeight height: CGFloat) {
+        // Update your constraint or frame
+        adViewHeightConstraint.constant = height
+        view.layoutIfNeeded()
+    }
+}
+```
+
+```objc
+// Objective-C
+- (void)adView:(GistAdView *)adView didLoadWithContentHeight:(CGFloat)height {
+    // Update your constraint or frame
+    self.adViewHeightConstraint.constant = height;
+    [self.view layoutIfNeeded];
+}
+```
+
 ## Configuration
 
 ### Required Parameters
@@ -309,6 +397,9 @@ extension MyViewController: GistAdViewDelegate {
 | `geo` | `String` | `"US"` | Geographic location code (e.g., "US", "GB", "CA") |
 | `adTypes` | `[AdType]?` | `nil` | Array of ad types to filter (nil = all types) |
 | `environment` | `GistAdControl.Environment` | `.production` | API environment (staging, integration, or production) |
+| `onAdLoaded` | `(() -> Void)?` | `nil` | Callback when ad successfully loads |
+| `onAdClicked` | `((URL) -> Void)?` | `nil` | Callback when user clicks an ad link (defaults to opening in browser) |
+| `onContentHeightChanged` | `((CGFloat) -> Void)?` | `nil` | Callback when ad content height is determined |
 
 ## Ad Types
 

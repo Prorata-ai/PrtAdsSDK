@@ -39,6 +39,19 @@ public struct GistAdControl: View {
     private let environment: Environment
     private let apiVersion: String?
     
+    // MARK: - Callbacks
+    
+    /// Called when the ad has successfully loaded and is ready to display.
+    private let onAdLoaded: (() -> Void)?
+    
+    /// Called when the user clicks an ad link that navigates to an external URL.
+    /// If not provided, the URL will be opened in the default browser.
+    private let onAdClicked: ((URL) -> Void)?
+    
+    /// Called when the ad content has loaded and the actual content height is known.
+    /// Use this to resize your ad container to match the actual ad content size.
+    private let onContentHeightChanged: ((CGFloat) -> Void)?
+    
     // MARK: - State
     
     @State private var adContent: String?
@@ -58,6 +71,9 @@ public struct GistAdControl: View {
     ///   - adTypes: Optional array of ad types to filter (defaults to all types)
     ///   - environment: API environment (defaults to production)
     ///   - apiVersion: API version to use (defaults to v2, or from GIST_ADS_API_VERSION env var)
+    ///   - onAdLoaded: Optional callback when ad successfully loads
+    ///   - onAdClicked: Optional callback when user clicks an ad link (defaults to opening in browser)
+    ///   - onContentHeightChanged: Optional callback when ad content height is determined
     public init(
         publisherID: String,
         publisherKey: String,
@@ -65,7 +81,10 @@ public struct GistAdControl: View {
         geo: String = "US",
         adTypes: [AdType]? = nil,
         environment: Environment = .production,
-        apiVersion: String? = nil
+        apiVersion: String? = nil,
+        onAdLoaded: (() -> Void)? = nil,
+        onAdClicked: ((URL) -> Void)? = nil,
+        onContentHeightChanged: ((CGFloat) -> Void)? = nil
     ) {
         self.publisherID = publisherID
         self.publisherKey = publisherKey
@@ -74,6 +93,9 @@ public struct GistAdControl: View {
         self.adTypes = adTypes
         self.environment = environment
         self.apiVersion = apiVersion
+        self.onAdLoaded = onAdLoaded
+        self.onAdClicked = onAdClicked
+        self.onContentHeightChanged = onContentHeightChanged
         
         self.apiService = AdAPIService(
             baseURL: environment.baseURL,
@@ -93,9 +115,14 @@ public struct GistAdControl: View {
             } else if let error = error {
                 errorView(error: error)
             } else if let adContent = adContent {
-                AdWebView(htmlContent: adContent, iframeBaseURL: environment.iframeBaseURL)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: AdViewConstants.configurableMinHeight, maxHeight: AdViewConstants.configurableMaxHeight)
+                AdWebView(
+                    htmlContent: adContent,
+                    iframeBaseURL: environment.iframeBaseURL,
+                    onAdClicked: onAdClicked,
+                    onContentHeightChanged: onContentHeightChanged
+                )
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: AdViewConstants.configurableMinHeight, maxHeight: AdViewConstants.configurableMaxHeight)
             } else {
                 emptyView
             }
@@ -155,6 +182,7 @@ public struct GistAdControl: View {
             await MainActor.run {
                 self.adContent = content
                 self.isLoading = false
+                self.onAdLoaded?()
             }
         } catch {
             await MainActor.run {
@@ -181,7 +209,10 @@ extension GistAdControl {
         geo: String = "US",
         adTypes: [AdType],
         environment: Environment = .production,
-        apiVersion: String? = nil
+        apiVersion: String? = nil,
+        onAdLoaded: (() -> Void)? = nil,
+        onAdClicked: ((URL) -> Void)? = nil,
+        onContentHeightChanged: ((CGFloat) -> Void)? = nil
     ) -> GistAdControl {
         GistAdControl(
             publisherID: publisherID,
@@ -190,7 +221,10 @@ extension GistAdControl {
             geo: geo,
             adTypes: adTypes,
             environment: environment,
-            apiVersion: apiVersion
+            apiVersion: apiVersion,
+            onAdLoaded: onAdLoaded,
+            onAdClicked: onAdClicked,
+            onContentHeightChanged: onContentHeightChanged
         )
     }
 }
