@@ -1,7 +1,10 @@
 package com.gist.ads.sdk.services
 
+import com.gist.ads.sdk.APIConstants
 import com.gist.ads.sdk.models.AdType
-import com.gist.ads.sdk.models.SearchRequest
+import com.gist.ads.sdk.models.SearchResponse
+import com.gist.ads.sdk.models.createSearchRequest
+import com.gist.ads.sdk.utils.IframeHTMLGenerator
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -20,6 +23,7 @@ class AdAPIService(
     private val baseUrl: String,
     private val publisherId: String,
     private val publisherKey: String,
+    private val apiVersion: String = APIConstants.defaultApiVersion(),
     enableLogging: Boolean = false
 ) {
     private val client: OkHttpClient
@@ -46,30 +50,34 @@ class AdAPIService(
      * @param query The search query text
      * @param geo Geographic location (e.g., "US", "GB")
      * @param adTypes Optional list of ad types to filter
-     * @return HTML string containing the ad content
+     * @param answer Optional answer string for v2 (defaults to query if null)
+     * @return HTML string containing the ad iframe
      * @throws AdAPIException if the request fails
      */
     suspend fun fetchAd(
         query: String,
         geo: String,
-        adTypes: List<AdType>?
+        adTypes: List<AdType>?,
+        answer: String? = null
     ): String = withContext(Dispatchers.IO) {
         try {
-            // Build request body
+            // Build request body using factory function
             val adTypeStrings = adTypes?.map { it.value }
-            val searchRequest = SearchRequest(
-                text = query,
+            val searchRequest = createSearchRequest(
+                version = apiVersion,
+                query = query,
                 geo = geo,
-                auctionType = "native",
-                adType = adTypeStrings
+                adTypes = adTypeStrings,
+                answer = answer
             )
             
             val jsonBody = gson.toJson(searchRequest)
             val requestBody = jsonBody.toRequestBody("application/json".toMediaType())
             
-            // Build HTTP request
+            // Build HTTP request with dynamic endpoint
+            val endpoint = "$baseUrl${APIConstants.searchEndpoint(apiVersion)}"
             val request = Request.Builder()
-                .url("$baseUrl/v1/search")
+                .url(endpoint)
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Publisher-ID", publisherId)
@@ -86,12 +94,8 @@ class AdAPIService(
             val responseBody = response.body?.string()
                 ?: throw AdAPIException.InvalidData
             
-            // Check for NO_AD response
-            if (responseBody.contains("\"ads\":[]") || responseBody.contains("NO_AD")) {
-                throw AdAPIException.NoAdsAvailable
-            }
-            
-            responseBody
+            // Parse JSON response and extract iframe URL
+            parseJSONResponse(responseBody)
             
         } catch (e: IOException) {
             throw AdAPIException.NetworkError(e)
@@ -100,6 +104,37 @@ class AdAPIService(
         } catch (e: Exception) {
             throw AdAPIException.UnknownError(e)
         }
+    }
+    
+    /**
+     * Parse JSON response and extract iframe URL
+     * @param data Response data containing JSON
+     * @return HTML string containing the ad iframe
+     */
+    private fun parseJSONResponse(data: String): String {
+        val searchResponse: SearchResponse
+        try {
+            searchResponse = gson.fromJson(data, SearchResponse::class.java)
+        } catch (e: Exception) {
+            throw AdAPIException.InvalidData
+        }
+        
+        // Check if we have a selection with ads
+        val selection = searchResponse.selection
+        if (selection.isNullOrEmpty()) {
+            throw AdAPIException.NoAdsAvailable
+        }
+        
+        // Extract iframeUrl from first selection item
+        val firstAd = selection.first()
+        val iframeUrl = firstAd.iframeUrl
+        
+        if (iframeUrl.isNullOrEmpty()) {
+            throw AdAPIException.MissingIframeUrl
+        }
+        
+        // Generate iframe HTML using utility
+        return IframeHTMLGenerator.generate(iframeUrl)
     }
 }
 
@@ -112,6 +147,7 @@ sealed class AdAPIException(message: String, cause: Throwable? = null) : Excepti
     object InvalidData : AdAPIException("Unable to parse response data")
     data class HttpError(val statusCode: Int) : AdAPIException("HTTP error: $statusCode")
     object NoAdsAvailable : AdAPIException("No ads available for this query")
+    object MissingIframeUrl : AdAPIException("Ad response missing iframe URL")
     data class NetworkError(val error: Throwable) : AdAPIException("Network error", error)
     data class UnknownError(val error: Throwable) : AdAPIException("Unknown error", error)
 }

@@ -23,6 +23,9 @@ fun FilterExampleScreen() {
     var selectedGeo by remember { mutableStateOf(Config.DEFAULT_GEO) }
     var geoExpanded by remember { mutableStateOf(false) }
     
+    var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
+    var apiVersionExpanded by remember { mutableStateOf(false) }
+    
     var imageEnabled by remember { mutableStateOf(true) }
     var imageTextEnabled by remember { mutableStateOf(true) }
     
@@ -177,6 +180,45 @@ fun FilterExampleScreen() {
         
         Divider()
         
+        // API Version selector
+        Text(
+            text = "API Version",
+            style = MaterialTheme.typography.titleSmall
+        )
+        
+        ExposedDropdownMenuBox(
+            expanded = apiVersionExpanded,
+            onExpandedChange = { apiVersionExpanded = !apiVersionExpanded }
+        ) {
+            OutlinedTextField(
+                value = Config.AVAILABLE_API_VERSIONS.find { it.first == selectedApiVersion }?.second ?: selectedApiVersion,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Version") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = apiVersionExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+            
+            ExposedDropdownMenu(
+                expanded = apiVersionExpanded,
+                onDismissRequest = { apiVersionExpanded = false }
+            ) {
+                Config.AVAILABLE_API_VERSIONS.forEach { (version, label) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            selectedApiVersion = version
+                            apiVersionExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+        
+        Divider()
+        
         // Ad display
         Text(
             text = "Ad Preview",
@@ -195,6 +237,7 @@ fun FilterExampleScreen() {
                 query = selectedQuery,
                 geo = selectedGeo,
                 adTypes = adTypes,
+                apiVersion = selectedApiVersion,
                 enableLogging = BuildConfig.DEBUG
             )
         }

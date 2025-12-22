@@ -4,35 +4,36 @@ import com.google.gson.annotations.SerializedName
 
 /**
  * Response model for search endpoint
+ * Matches the actual API response structure with 'selection' array
  */
 data class SearchResponse(
-    @SerializedName("ads")
-    val ads: List<Ad>? = null,
+    @SerializedName("selection")
+    val selection: List<AdSelection>? = null,
     
     @SerializedName("message")
     val message: String? = null
 ) {
     /**
-     * Individual ad data
+     * Ad selection from the API response
      */
-    data class Ad(
-        @SerializedName("id")
-        val id: String? = null,
+    data class AdSelection(
+        @SerializedName("adId")
+        val adId: String? = null,
         
-        @SerializedName("title")
-        val title: String? = null,
+        @SerializedName("iframeUrl")
+        val iframeUrl: String? = null,
         
-        @SerializedName("description")
-        val description: String? = null,
+        @SerializedName("flightId")
+        val flightId: String? = null,
         
-        @SerializedName("image_url")
-        val imageUrl: String? = null,
+        @SerializedName("adName")
+        val adName: String? = null,
         
-        @SerializedName("click_url")
-        val clickUrl: String? = null,
+        @SerializedName("adSource")
+        val adSource: String? = null,
         
-        @SerializedName("impression_url")
-        val impressionUrl: String? = null
+        @SerializedName("render")
+        val render: String? = null
     )
 }
 

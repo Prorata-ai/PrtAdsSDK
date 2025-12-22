@@ -26,6 +26,8 @@ import kotlinx.coroutines.delay
 fun SearchExampleScreen() {
     var searchText by remember { mutableStateOf("") }
     var debouncedQuery by remember { mutableStateOf("") }
+    var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
+    var apiVersionExpanded by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
     
     // Debounce search input
@@ -101,6 +103,45 @@ fun SearchExampleScreen() {
         
         Divider()
         
+        // API Version selector
+        Text(
+            text = "API Version",
+            style = MaterialTheme.typography.titleSmall
+        )
+        
+        ExposedDropdownMenuBox(
+            expanded = apiVersionExpanded,
+            onExpandedChange = { apiVersionExpanded = !apiVersionExpanded }
+        ) {
+            OutlinedTextField(
+                value = Config.AVAILABLE_API_VERSIONS.find { it.first == selectedApiVersion }?.second ?: selectedApiVersion,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Version") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = apiVersionExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+            
+            ExposedDropdownMenu(
+                expanded = apiVersionExpanded,
+                onDismissRequest = { apiVersionExpanded = false }
+            ) {
+                Config.AVAILABLE_API_VERSIONS.forEach { (version, label) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            selectedApiVersion = version
+                            apiVersionExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+        
+        Divider()
+        
         // Ad display
         if (debouncedQuery.isNotBlank()) {
             Text(
@@ -119,6 +160,7 @@ fun SearchExampleScreen() {
                     publisherKey = Config.PUBLISHER_KEY,
                     query = debouncedQuery,
                     geo = Config.DEFAULT_GEO,
+                    apiVersion = selectedApiVersion,
                     enableLogging = BuildConfig.DEBUG
                 )
             }

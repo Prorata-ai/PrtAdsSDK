@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.gist.ads.sdk.APIConstants
 import com.gist.ads.sdk.models.AdType
 import com.gist.ads.sdk.services.AdAPIException
 import com.gist.ads.sdk.services.AdAPIService
@@ -21,6 +22,10 @@ import kotlinx.coroutines.launch
  * @param query Search query to fetch relevant ads for
  * @param geo Geographic location code (e.g., "US", "GB", "CA")
  * @param adTypes Optional list of ad types to filter (null = all types)
+ * @param environment API environment (defaults to production)
+ * @param apiVersion API version to use (defaults to v2, or from system property)
+ * @param customBaseUrl Optional custom base URL to override environment default
+ * @param customIframeUrl Optional custom iframe base URL to override environment default
  * @param modifier Modifier for styling the ad control
  * @param enableLogging Enable API request/response logging for debugging
  */
@@ -31,6 +36,10 @@ fun GistAdControl(
     query: String,
     geo: String = "US",
     adTypes: List<AdType>? = null,
+    environment: APIConstants.Environment = APIConstants.Environment.PRODUCTION,
+    apiVersion: String = APIConstants.defaultApiVersion(),
+    customBaseUrl: String? = null,
+    customIframeUrl: String? = null,
     modifier: Modifier = Modifier,
     enableLogging: Boolean = false
 ) {
@@ -40,11 +49,12 @@ fun GistAdControl(
     var error by remember { mutableStateOf<AdAPIException?>(null) }
     
     // API service
-    val apiService = remember(publisherId, publisherKey, enableLogging) {
+    val apiService = remember(publisherId, publisherKey, environment, apiVersion, customBaseUrl, enableLogging) {
         AdAPIService(
-            baseUrl = API_BASE_URL,
+            baseUrl = customBaseUrl ?: environment.baseUrl,
             publisherId = publisherId,
             publisherKey = publisherKey,
+            apiVersion = apiVersion,
             enableLogging = enableLogging
         )
     }
@@ -52,7 +62,7 @@ fun GistAdControl(
     val scope = rememberCoroutineScope()
     
     // Load ad when component is first composed or when key params change
-    LaunchedEffect(query, geo, adTypes) {
+    LaunchedEffect(query, geo, adTypes, apiVersion) {
         if (query.isNotBlank()) {
             isLoading = true
             error = null
@@ -207,9 +217,4 @@ private fun EmptyView() {
         )
     }
 }
-
-/**
- * Production API endpoint - managed internally
- */
-private const val API_BASE_URL = "https://tp-srch-api.gist.ai"
 

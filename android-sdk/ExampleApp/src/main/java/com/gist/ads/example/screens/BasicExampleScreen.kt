@@ -17,7 +17,9 @@ import com.gist.ads.sdk.ui.GistAdControl
 @Composable
 fun BasicExampleScreen() {
     var selectedQuery by remember { mutableStateOf(Config.SAMPLE_QUERIES[0]) }
-    var expanded by remember { mutableStateOf(false) }
+    var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
+    var queryExpanded by remember { mutableStateOf(false) }
+    var apiVersionExpanded by remember { mutableStateOf(false) }
     
     Column(
         modifier = Modifier
@@ -46,30 +48,67 @@ fun BasicExampleScreen() {
         )
         
         ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
+            expanded = queryExpanded,
+            onExpandedChange = { queryExpanded = !queryExpanded }
         ) {
             OutlinedTextField(
                 value = selectedQuery,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Query") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = queryExpanded) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor()
             )
             
             ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+                expanded = queryExpanded,
+                onDismissRequest = { queryExpanded = false }
             ) {
                 Config.SAMPLE_QUERIES.forEach { query ->
                     DropdownMenuItem(
                         text = { Text(query) },
                         onClick = {
                             selectedQuery = query
-                            expanded = false
+                            queryExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+        
+        // API Version selector
+        Text(
+            text = "Select API version:",
+            style = MaterialTheme.typography.titleSmall
+        )
+        
+        ExposedDropdownMenuBox(
+            expanded = apiVersionExpanded,
+            onExpandedChange = { apiVersionExpanded = !apiVersionExpanded }
+        ) {
+            OutlinedTextField(
+                value = Config.AVAILABLE_API_VERSIONS.find { it.first == selectedApiVersion }?.second ?: selectedApiVersion,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("API Version") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = apiVersionExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+            
+            ExposedDropdownMenu(
+                expanded = apiVersionExpanded,
+                onDismissRequest = { apiVersionExpanded = false }
+            ) {
+                Config.AVAILABLE_API_VERSIONS.forEach { (version, label) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            selectedApiVersion = version
+                            apiVersionExpanded = false
                         }
                     )
                 }
@@ -95,6 +134,7 @@ fun BasicExampleScreen() {
                 publisherKey = Config.PUBLISHER_KEY,
                 query = selectedQuery,
                 geo = Config.DEFAULT_GEO,
+                apiVersion = selectedApiVersion,
                 enableLogging = BuildConfig.DEBUG
             )
         }
@@ -124,6 +164,11 @@ fun BasicExampleScreen() {
                 )
                 Text(
                     text = "Geo: ${Config.DEFAULT_GEO}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = "API Version: $selectedApiVersion",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
