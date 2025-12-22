@@ -27,12 +27,14 @@ fun FilterExampleScreen() {
     var apiVersionExpanded by remember { mutableStateOf(false) }
     
     var imageEnabled by remember { mutableStateOf(true) }
-    var imageTextEnabled by remember { mutableStateOf(true) }
+    var textImageEnabled by remember { mutableStateOf(true) }
+    var textEnabled by remember { mutableStateOf(true) }
     
     // Build ad types list
     val adTypes = buildList {
         if (imageEnabled) add(AdType.IMAGE)
-        if (imageTextEnabled) add(AdType.IMAGE_TEXT)
+        if (textImageEnabled) add(AdType.TEXT_IMAGE)
+        if (textEnabled) add(AdType.TEXT)
     }.ifEmpty { null }
     
     Column(
@@ -122,14 +124,25 @@ fun FilterExampleScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Image/Text Ads")
+                    Text("Text/Image Ads")
                     Switch(
-                        checked = imageTextEnabled,
-                        onCheckedChange = { imageTextEnabled = it }
+                        checked = textImageEnabled,
+                        onCheckedChange = { textImageEnabled = it }
                     )
                 }
                 
-                if (!imageEnabled && !imageTextEnabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Text Ads")
+                    Switch(
+                        checked = textEnabled,
+                        onCheckedChange = { textEnabled = it }
+                    )
+                }
+                
+                if (!imageEnabled && !textImageEnabled && !textEnabled) {
                     Text(
                         text = "⚠️ At least one ad type should be selected",
                         style = MaterialTheme.typography.bodySmall,
