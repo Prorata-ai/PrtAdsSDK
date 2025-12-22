@@ -15,5 +15,8 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "GistAdsSDK"
+include(":ExampleApp")
 
+// SDK library is at the root level
+rootProject.buildFileName = "sdk.gradle.kts"
 

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.gist.ads.example.BuildConfig
 import com.gist.ads.example.Config
 import com.gist.ads.sdk.ui.GistAdControl
 import kotlinx.coroutines.delay
