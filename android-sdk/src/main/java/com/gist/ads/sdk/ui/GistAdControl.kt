@@ -28,6 +28,9 @@ import kotlinx.coroutines.launch
  * @param customIframeUrl Optional custom iframe base URL to override environment default
  * @param modifier Modifier for styling the ad control
  * @param enableLogging Enable API request/response logging for debugging
+ * @param onAdLoaded Optional callback invoked when ad successfully loads
+ * @param onAdClicked Optional callback invoked when user clicks an ad link (provides URL)
+ * @param onContentHeightChanged Optional callback invoked when ad content height is measured
  */
 @Composable
 fun GistAdControl(
@@ -41,7 +44,10 @@ fun GistAdControl(
     customBaseUrl: String? = null,
     customIframeUrl: String? = null,
     modifier: Modifier = Modifier,
-    enableLogging: Boolean = false
+    enableLogging: Boolean = false,
+    onAdLoaded: (() -> Unit)? = null,
+    onAdClicked: ((String) -> Unit)? = null,
+    onContentHeightChanged: ((Float) -> Unit)? = null
 ) {
     // State management
     var adContent by remember { mutableStateOf<String?>(null) }
@@ -75,6 +81,8 @@ fun GistAdControl(
                 )
                 adContent = content
                 error = null
+                // Invoke callback when ad loads successfully
+                onAdLoaded?.invoke()
             } catch (e: AdAPIException) {
                 error = e
                 adContent = null
@@ -109,6 +117,8 @@ fun GistAdControl(
                                 )
                                 adContent = content
                                 error = null
+                                // Invoke callback when ad loads successfully
+                                onAdLoaded?.invoke()
                             } catch (e: AdAPIException) {
                                 error = e
                                 adContent = null
@@ -122,7 +132,9 @@ fun GistAdControl(
             adContent != null -> {
                 AdWebView(
                     htmlContent = adContent!!,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    onAdClicked = onAdClicked,
+                    onContentHeightChanged = onContentHeightChanged
                 )
             }
             else -> {

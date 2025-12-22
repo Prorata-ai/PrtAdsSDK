@@ -21,6 +21,11 @@ fun BasicExampleScreen() {
     var queryExpanded by remember { mutableStateOf(false) }
     var apiVersionExpanded by remember { mutableStateOf(false) }
     
+    // Callback state tracking
+    var adLoadedCount by remember { mutableStateOf(0) }
+    var lastClickedUrl by remember { mutableStateOf<String?>(null) }
+    var contentHeight by remember { mutableStateOf<Float?>(null) }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -135,7 +140,20 @@ fun BasicExampleScreen() {
                 query = selectedQuery,
                 geo = Config.DEFAULT_GEO,
                 apiVersion = selectedApiVersion,
-                enableLogging = BuildConfig.DEBUG
+                enableLogging = BuildConfig.DEBUG,
+                onAdLoaded = {
+                    adLoadedCount++
+                    println("✅ Ad loaded! Count: $adLoadedCount")
+                },
+                onAdClicked = { url ->
+                    lastClickedUrl = url
+                    println("🔗 Ad clicked: $url")
+                    // Default: open in browser (happens automatically if we don't provide callback)
+                },
+                onContentHeightChanged = { height ->
+                    contentHeight = height
+                    println("📏 Content height: ${height}px")
+                }
             )
         }
         
@@ -177,6 +195,44 @@ fun BasicExampleScreen() {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+            }
+        }
+        
+        Divider()
+        
+        // Event callbacks card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Event Callbacks",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = "Ads Loaded: $adLoadedCount",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = "Content Height: ${contentHeight?.toInt() ?: "Not measured"}px",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                lastClickedUrl?.let { url ->
+                    Text(
+                        text = "Last Click: ${url.take(50)}...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
             }
         }
     }

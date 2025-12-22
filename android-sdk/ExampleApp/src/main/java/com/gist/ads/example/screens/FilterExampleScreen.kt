@@ -251,7 +251,16 @@ fun FilterExampleScreen() {
                 geo = selectedGeo,
                 adTypes = adTypes,
                 apiVersion = selectedApiVersion,
-                enableLogging = BuildConfig.DEBUG
+                enableLogging = BuildConfig.DEBUG,
+                onAdLoaded = {
+                    println("FilterExample: Ad loaded - Query: $selectedQuery, Geo: $selectedGeo")
+                },
+                onAdClicked = { url ->
+                    println("FilterExample: Ad clicked - $url")
+                },
+                onContentHeightChanged = { height ->
+                    println("FilterExample: Content height - ${height}px")
+                }
             )
         }
         

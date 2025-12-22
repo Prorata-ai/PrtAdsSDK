@@ -161,7 +161,16 @@ fun SearchExampleScreen() {
                     query = debouncedQuery,
                     geo = Config.DEFAULT_GEO,
                     apiVersion = selectedApiVersion,
-                    enableLogging = BuildConfig.DEBUG
+                    enableLogging = BuildConfig.DEBUG,
+                    onAdLoaded = {
+                        println("SearchExample: Ad loaded for query: $debouncedQuery")
+                    },
+                    onAdClicked = { url ->
+                        println("SearchExample: Ad clicked - $url")
+                    },
+                    onContentHeightChanged = { height ->
+                        println("SearchExample: Content height - ${height}px")
+                    }
                 )
             }
             
