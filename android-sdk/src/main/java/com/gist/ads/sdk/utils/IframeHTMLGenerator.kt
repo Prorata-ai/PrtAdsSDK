@@ -27,4 +27,54 @@ object IframeHTMLGenerator {
 </iframe>
 """
     }
+    
+    /**
+     * Wraps ad content in a responsive HTML template for WebView display
+     * @param content The ad HTML content to wrap
+     * @return Complete HTML document with styling
+     */
+    fun wrapForWebView(content: String): String {
+        return """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: transparent;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .ad-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+        }
+        .ad-content {
+            width: 100%;
+            max-width: 600px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="ad-container">
+        <div class="ad-content">
+            $content
+        </div>
+    </div>
+</body>
+</html>
+        """.trimIndent()
+    }
 }

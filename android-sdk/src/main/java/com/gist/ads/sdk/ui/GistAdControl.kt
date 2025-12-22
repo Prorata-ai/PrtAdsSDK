@@ -69,27 +69,22 @@ fun GistAdControl(
     
     // Load ad when component is first composed or when key params change
     LaunchedEffect(query, geo, adTypes, apiVersion) {
-        if (query.isNotBlank()) {
-            isLoading = true
-            error = null
-            
-            try {
-                val content = apiService.fetchAd(
-                    query = query,
-                    geo = geo,
-                    adTypes = adTypes
-                )
+        loadAd(
+            apiService = apiService,
+            query = query,
+            geo = geo,
+            adTypes = adTypes,
+            onSuccess = { content ->
                 adContent = content
                 error = null
-                // Invoke callback when ad loads successfully
-                onAdLoaded?.invoke()
-            } catch (e: AdAPIException) {
+            },
+            onError = { e ->
                 error = e
                 adContent = null
-            } finally {
-                isLoading = false
-            }
-        }
+            },
+            onLoading = { loading -> isLoading = loading },
+            onAdLoaded = onAdLoaded
+        )
     }
     
     // Render UI based on state
@@ -106,25 +101,22 @@ fun GistAdControl(
                     error = error!!,
                     onRetry = {
                         scope.launch {
-                            isLoading = true
-                            error = null
-                            
-                            try {
-                                val content = apiService.fetchAd(
-                                    query = query,
-                                    geo = geo,
-                                    adTypes = adTypes
-                                )
-                                adContent = content
-                                error = null
-                                // Invoke callback when ad loads successfully
-                                onAdLoaded?.invoke()
-                            } catch (e: AdAPIException) {
-                                error = e
-                                adContent = null
-                            } finally {
-                                isLoading = false
-                            }
+                            loadAd(
+                                apiService = apiService,
+                                query = query,
+                                geo = geo,
+                                adTypes = adTypes,
+                                onSuccess = { content ->
+                                    adContent = content
+                                    error = null
+                                },
+                                onError = { e ->
+                                    error = e
+                                    adContent = null
+                                },
+                                onLoading = { loading -> isLoading = loading },
+                                onAdLoaded = onAdLoaded
+                            )
                         }
                     }
                 )
@@ -140,6 +132,34 @@ fun GistAdControl(
             else -> {
                 EmptyView()
             }
+        }
+    }
+}
+
+/**
+ * Helper function to load ad and update state
+ * Eliminates code duplication between initial load and retry
+ */
+private suspend fun loadAd(
+    apiService: AdAPIService,
+    query: String,
+    geo: String,
+    adTypes: List<AdType>?,
+    onSuccess: (String) -> Unit,
+    onError: (AdAPIException) -> Unit,
+    onLoading: (Boolean) -> Unit,
+    onAdLoaded: (() -> Unit)?
+) {
+    if (query.isNotBlank()) {
+        onLoading(true)
+        try {
+            val content = apiService.fetchAd(query, geo, adTypes)
+            onSuccess(content)
+            onAdLoaded?.invoke()
+        } catch (e: AdAPIException) {
+            onError(e)
+        } finally {
+            onLoading(false)
         }
     }
 }

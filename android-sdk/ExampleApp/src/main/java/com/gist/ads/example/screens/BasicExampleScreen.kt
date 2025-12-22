@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.gist.ads.example.BuildConfig
 import com.gist.ads.example.Config
+import com.gist.ads.example.ui.*
 import com.gist.ads.sdk.ui.GistAdControl
 
 /**
@@ -18,8 +19,6 @@ import com.gist.ads.sdk.ui.GistAdControl
 fun BasicExampleScreen() {
     var selectedQuery by remember { mutableStateOf(Config.SAMPLE_QUERIES[0]) }
     var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
-    var queryExpanded by remember { mutableStateOf(false) }
-    var apiVersionExpanded by remember { mutableStateOf(false) }
     
     // Callback state tracking
     var adLoadedCount by remember { mutableStateOf(0) }
@@ -47,93 +46,27 @@ fun BasicExampleScreen() {
         Divider()
         
         // Query selector
-        Text(
-            text = "Select a query:",
-            style = MaterialTheme.typography.titleSmall
-        )
+        SectionTitle("Select a query:")
         
-        ExposedDropdownMenuBox(
-            expanded = queryExpanded,
-            onExpandedChange = { queryExpanded = !queryExpanded }
-        ) {
-            OutlinedTextField(
-                value = selectedQuery,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Query") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = queryExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-            )
-            
-            ExposedDropdownMenu(
-                expanded = queryExpanded,
-                onDismissRequest = { queryExpanded = false }
-            ) {
-                Config.SAMPLE_QUERIES.forEach { query ->
-                    DropdownMenuItem(
-                        text = { Text(query) },
-                        onClick = {
-                            selectedQuery = query
-                            queryExpanded = false
-                        }
-                    )
-                }
-            }
-        }
+        QueryDropdown(
+            selectedQuery = selectedQuery,
+            onQuerySelected = { selectedQuery = it }
+        )
         
         // API Version selector
-        Text(
-            text = "Select API version:",
-            style = MaterialTheme.typography.titleSmall
-        )
+        SectionTitle("Select API version:")
         
-        ExposedDropdownMenuBox(
-            expanded = apiVersionExpanded,
-            onExpandedChange = { apiVersionExpanded = !apiVersionExpanded }
-        ) {
-            OutlinedTextField(
-                value = Config.AVAILABLE_API_VERSIONS.find { it.first == selectedApiVersion }?.second ?: selectedApiVersion,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("API Version") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = apiVersionExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-            )
-            
-            ExposedDropdownMenu(
-                expanded = apiVersionExpanded,
-                onDismissRequest = { apiVersionExpanded = false }
-            ) {
-                Config.AVAILABLE_API_VERSIONS.forEach { (version, label) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = {
-                            selectedApiVersion = version
-                            apiVersionExpanded = false
-                        }
-                    )
-                }
-            }
-        }
+        ApiVersionDropdown(
+            selectedVersion = selectedApiVersion,
+            onVersionSelected = { selectedApiVersion = it }
+        )
         
         Divider()
         
         // Ad display
-        Text(
-            text = "Ad Preview:",
-            style = MaterialTheme.typography.titleSmall
-        )
+        SectionTitle("Ad Preview:")
         
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
+        AdPreviewCard {
             GistAdControl(
                 publisherId = Config.PUBLISHER_ID,
                 publisherKey = Config.PUBLISHER_KEY,
@@ -160,81 +93,29 @@ fun BasicExampleScreen() {
         Divider()
         
         // Info card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+        InfoCard(
+            title = "Configuration",
+            items = listOf(
+                "Query" to selectedQuery,
+                "Geo" to Config.DEFAULT_GEO,
+                "API Version" to selectedApiVersion,
+                "Ad Types" to "All"
             )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Configuration",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Query: $selectedQuery",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Geo: ${Config.DEFAULT_GEO}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "API Version: $selectedApiVersion",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Ad Types: All",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
+        )
         
         Divider()
         
         // Event callbacks card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Event Callbacks",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Text(
-                    text = "Ads Loaded: $adLoadedCount",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Text(
-                    text = "Content Height: ${contentHeight?.toInt() ?: "Not measured"}px",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                lastClickedUrl?.let { url ->
-                    Text(
-                        text = "Last Click: ${url.take(50)}...",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
-            }
-        }
+        InfoCard(
+            title = "Event Callbacks",
+            items = buildList {
+                add("Ads Loaded" to "$adLoadedCount")
+                add("Content Height" to "${contentHeight?.toInt() ?: "Not measured"}px")
+                lastClickedUrl?.let { add("Last Click" to "${it.take(50)}...") }
+            },
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        )
     }
 }
 
