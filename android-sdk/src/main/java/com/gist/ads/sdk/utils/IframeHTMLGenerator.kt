@@ -27,7 +27,7 @@ object IframeHTMLGenerator {
         scrolling="no" 
         allowfullscreen 
         allow="autoplay; fullscreen; payment"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
         style="width:100%;height:100%;min-height:250px;border:none;">
 </iframe>
 """
