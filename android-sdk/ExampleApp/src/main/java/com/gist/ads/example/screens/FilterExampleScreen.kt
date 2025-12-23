@@ -154,9 +154,7 @@ fun FilterExampleScreen() {
                 onAdLoaded = {
                     println("FilterExample: Ad loaded - Query: $selectedQuery, Geo: $selectedGeo")
                 },
-                onAdClicked = { url ->
-                    println("FilterExample: Ad clicked - $url")
-                },
+                // onAdClicked removed - ads will automatically open in browser when clicked
                 onContentHeightChanged = { height ->
                     println("FilterExample: Content height - ${height}px")
                 }

@@ -2,6 +2,7 @@ plugins {
     id("com.android.library") version "8.7.3"
     id("org.jetbrains.kotlin.android") version "1.9.10"
     id("maven-publish")
+    id("signing")
 }
 
 android {
@@ -41,6 +42,14 @@ android {
     
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.3"
+    }
+    
+    // Enable publishing of sources and javadoc
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
     }
 }
 
@@ -90,6 +99,76 @@ publishing {
             afterEvaluate {
                 from(components["release"])
             }
+            
+            pom {
+                name.set("Gist Ads SDK")
+                description.set("Native Android SDK for integrating Gist AI Search Ads into Android applications with Jetpack Compose")
+                url.set("https://github.com/Prorata-ai/PrtAdsSDK")
+                
+                licenses {
+                    license {
+                        name.set("Proprietary License")
+                        url.set("https://github.com/Prorata-ai/PrtAdsSDK/blob/main/android-sdk/LICENSE")
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id.set("gist")
+                        name.set("Gist")
+                        email.set("support@gist.com")
+                        organization.set("Gist")
+                        organizationUrl.set("https://gist.com")
+                    }
+                }
+                
+                scm {
+                    connection.set("scm:git:git://github.com/Prorata-ai/PrtAdsSDK.git")
+                    developerConnection.set("scm:git:ssh://github.com/Prorata-ai/PrtAdsSDK.git")
+                    url.set("https://github.com/Prorata-ai/PrtAdsSDK")
+                }
+            }
         }
+    }
+    
+    repositories {
+        // Maven Central (OSSRH)
+        maven {
+            name = "MavenCentral"
+            val releasesRepoUrl = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+            val snapshotsRepoUrl = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+            url = if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl
+            
+            credentials {
+                username = project.findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
+                password = project.findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
+            }
+        }
+        
+        // Local Maven repository for testing
+        maven {
+            name = "LocalMaven"
+            url = uri("${buildDir}/repo")
+        }
+    }
+}
+
+// Signing configuration for Maven Central
+signing {
+    // Use GPG agent or in-memory keys
+    val signingKey = project.findProperty("signing.key") as String? ?: System.getenv("SIGNING_KEY")
+    val signingPassword = project.findProperty("signing.password") as String? ?: System.getenv("SIGNING_PASSWORD")
+    
+    if (signingKey != null && signingPassword != null) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+    }
+    
+    sign(publishing.publications["release"])
+}
+
+// Skip signing for local builds
+tasks.withType<Sign>().configureEach {
+    onlyIf {
+        project.hasProperty("signing.key") || System.getenv("SIGNING_KEY") != null
     }
 }

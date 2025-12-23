@@ -131,9 +131,7 @@ fun SearchExampleScreen() {
                     onAdLoaded = {
                         println("SearchExample: Ad loaded for query: $debouncedQuery")
                     },
-                    onAdClicked = { url ->
-                        println("SearchExample: Ad clicked - $url")
-                    },
+                    // onAdClicked removed - ads will automatically open in browser when clicked
                     onContentHeightChanged = { height ->
                         println("SearchExample: Content height - ${height}px")
                     }

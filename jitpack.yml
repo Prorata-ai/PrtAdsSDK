@@ -1,0 +1,19 @@
+# JitPack configuration for PrtAdsSDK
+# This file configures how JitPack builds the Android SDK
+
+# Use Java 17 for building (required for Android Gradle Plugin 8.x)
+jdk:
+  - openjdk17
+
+# Build command for the Android SDK
+before_install:
+  - cd android-sdk
+  - ./gradlew clean
+
+install:
+  - cd android-sdk
+  - ./gradlew :publishToMavenLocal -x signReleasePublication
+
+# Environment variables
+env:
+  GRADLE_OPTS: "-Xmx2048m -XX:MaxPermSize=512m"

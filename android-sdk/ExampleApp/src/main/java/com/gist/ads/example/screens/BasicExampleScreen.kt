@@ -22,7 +22,6 @@ fun BasicExampleScreen() {
     
     // Callback state tracking
     var adLoadedCount by remember { mutableStateOf(0) }
-    var lastClickedUrl by remember { mutableStateOf<String?>(null) }
     var contentHeight by remember { mutableStateOf<Float?>(null) }
     
     Column(
@@ -78,11 +77,7 @@ fun BasicExampleScreen() {
                     adLoadedCount++
                     println("✅ Ad loaded! Count: $adLoadedCount")
                 },
-                onAdClicked = { url ->
-                    lastClickedUrl = url
-                    println("🔗 Ad clicked: $url")
-                    // Default: open in browser (happens automatically if we don't provide callback)
-                },
+                // onAdClicked removed - ads will automatically open in browser when clicked
                 onContentHeightChanged = { height ->
                     contentHeight = height
                     println("📏 Content height: ${height}px")
@@ -108,11 +103,11 @@ fun BasicExampleScreen() {
         // Event callbacks card
         InfoCard(
             title = "Event Callbacks",
-            items = buildList {
-                add("Ads Loaded" to "$adLoadedCount")
-                add("Content Height" to "${contentHeight?.toInt() ?: "Not measured"}px")
-                lastClickedUrl?.let { add("Last Click" to "${it.take(50)}...") }
-            },
+            items = listOf(
+                "Ads Loaded" to "$adLoadedCount",
+                "Content Height" to "${contentHeight?.toInt() ?: "Not measured"}px",
+                "Ad Clicks" to "Open automatically in browser"
+            ),
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
         )
