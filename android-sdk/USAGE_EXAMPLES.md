@@ -7,13 +7,14 @@ Comprehensive examples for using the Gist Ads SDK in your Android application.
 1. [Basic Usage](#basic-usage)
 2. [API Versioning](#api-versioning)
 3. [Event Callbacks](#event-callbacks)
-4. [Dynamic Search Integration](#dynamic-search-integration)
-5. [Ad Type Filtering](#ad-type-filtering)
-6. [Geographic Targeting](#geographic-targeting)
-7. [Custom Styling](#custom-styling)
-8. [Advanced Patterns](#advanced-patterns)
-9. [Error Handling](#error-handling)
-10. [Performance Optimization](#performance-optimization)
+4. [Theme Support](#theme-support)
+5. [Dynamic Search Integration](#dynamic-search-integration)
+6. [Ad Type Filtering](#ad-type-filtering)
+7. [Geographic Targeting](#geographic-targeting)
+8. [Custom Styling](#custom-styling)
+9. [Advanced Patterns](#advanced-patterns)
+10. [Error Handling](#error-handling)
+11. [Performance Optimization](#performance-optimization)
 
 ---
 
@@ -164,6 +165,154 @@ fun KeyboardSearchExample() {
                 query = searchQuery
             )
         }
+    }
+}
+```
+
+---
+
+## Theme Support
+
+The SDK automatically adapts ads to light and dark mode, with support for system detection and manual override.
+
+### Automatic Theme Detection (Default)
+
+By default, ads automatically match your device's theme:
+
+```kotlin
+@Composable
+fun AutoThemeAdExample() {
+    GistAdControl(
+        publisherId = "your-publisher-id",
+        publisherKey = "your-publisher-key",
+        query = "wireless headphones"
+        // theme = "system" is the default
+    )
+}
+```
+
+### Manual Theme Override
+
+Force a specific theme for your ads:
+
+```kotlin
+@Composable
+fun LightThemeAdExample() {
+    GistAdControl(
+        publisherId = "your-publisher-id",
+        publisherKey = "your-publisher-key",
+        query = "running shoes",
+        theme = "light"  // Always show light theme
+    )
+}
+
+@Composable
+fun DarkThemeAdExample() {
+    GistAdControl(
+        publisherId = "your-publisher-id",
+        publisherKey = "your-publisher-key",
+        query = "smart watch",
+        theme = "dark"  // Always show dark theme
+    )
+}
+```
+
+### Theme Picker UI
+
+Let users choose their preferred ad theme:
+
+```kotlin
+@Composable
+fun AdWithThemePicker() {
+    var selectedTheme by remember { mutableStateOf("system") }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Theme selector
+        Text(
+            text = "Ad Theme",
+            style = MaterialTheme.typography.labelMedium
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = selectedTheme == "system",
+                onClick = { selectedTheme = "system" },
+                label = { Text("System") },
+                modifier = Modifier.weight(1f)
+            )
+            FilterChip(
+                selected = selectedTheme == "light",
+                onClick = { selectedTheme = "light" },
+                label = { Text("Light") },
+                modifier = Modifier.weight(1f)
+            )
+            FilterChip(
+                selected = selectedTheme == "dark",
+                onClick = { selectedTheme = "dark" },
+                label = { Text("Dark") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        // Ad with selected theme
+        GistAdControl(
+            publisherId = "your-publisher-id",
+            publisherKey = "your-publisher-key",
+            query = "wireless headphones",
+            theme = selectedTheme,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+        )
+    }
+}
+```
+
+### Theme with State Persistence
+
+Save theme preference across app restarts:
+
+```kotlin
+@Composable
+fun PersistentThemeAd() {
+    val context = LocalContext.current
+    val sharedPrefs = context.getSharedPreferences("ad_prefs", Context.MODE_PRIVATE)
+    var selectedTheme by remember { 
+        mutableStateOf(sharedPrefs.getString("ad_theme", "system") ?: "system") 
+    }
+    
+    fun saveTheme(theme: String) {
+        selectedTheme = theme
+        sharedPrefs.edit().putString("ad_theme", theme).apply()
+    }
+    
+    Column {
+        // Theme selector
+        Row {
+            listOf("system", "light", "dark").forEach { theme ->
+                FilterChip(
+                    selected = selectedTheme == theme,
+                    onClick = { saveTheme(theme) },
+                    label = { Text(theme.capitalize()) }
+                )
+            }
+        }
+        
+        // Ad
+        GistAdControl(
+            publisherId = "your-publisher-id",
+            publisherKey = "your-publisher-key",
+            query = "laptops",
+            theme = selectedTheme
+        )
     }
 }
 ```

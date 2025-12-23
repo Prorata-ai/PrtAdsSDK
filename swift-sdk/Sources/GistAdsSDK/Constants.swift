@@ -64,7 +64,7 @@ public enum APIConstants {
     /// Get base URL for environment, checking environment variables first
     /// - Parameter environment: The environment to get the base URL for
     /// - Returns: Base URL from environment variable if set, otherwise the default constant
-    static func baseURL(for environment: GistAdControl.Environment) -> String {
+    static func baseURL(for environment: GistAdControl.APIEnvironment) -> String {
         let envKey: String
         let defaultValue: String
         
@@ -87,7 +87,7 @@ public enum APIConstants {
     /// Get iframe base URL for environment, checking environment variables first
     /// - Parameter environment: The environment to get the iframe base URL for
     /// - Returns: Iframe base URL from environment variable if set, otherwise the default constant
-    static func iframeBaseURL(for environment: GistAdControl.Environment) -> String {
+    static func iframeBaseURL(for environment: GistAdControl.APIEnvironment) -> String {
         let envKey: String
         let defaultValue: String
         

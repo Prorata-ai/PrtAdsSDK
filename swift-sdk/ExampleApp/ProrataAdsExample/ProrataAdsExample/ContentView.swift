@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var selectedGeo = "US"
     @State private var selectedAdTypes: Set<AdType> = [.image, .textImage, .text]
     @State private var selectedApiVersion = APIConstants.apiVersionV2
+    @State private var selectedTheme = "system"
     @State private var refreshTrigger = UUID()
     
     // Computed property to optimize adTypes conversion
@@ -140,6 +141,23 @@ struct ContentView: View {
                 }
             }
             
+            // Theme
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Theme")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Picker("Theme", selection: $selectedTheme) {
+                    Text("System").tag("system")
+                    Text("Light").tag("light")
+                    Text("Dark").tag("dark")
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: selectedTheme) {
+                    refreshTrigger = UUID()
+                }
+            }
+            
             // Refresh Button
             Button(action: {
                 refreshTrigger = UUID()
@@ -172,7 +190,8 @@ struct ContentView: View {
                     geo: selectedGeo,
                     adTypes: adTypesArray,
                     environment: .production,
-                    apiVersion: selectedApiVersion
+                    apiVersion: selectedApiVersion,
+                    theme: selectedTheme
                 )
                 .frame(height: 250)
                 .background(Color.white)

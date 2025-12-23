@@ -8,12 +8,17 @@ object IframeHTMLGenerator {
     /**
      * Generate iframe HTML with proper escaping and attributes
      * @param iframeUrl The URL for the iframe src attribute
+     * @param theme Theme preference - "light" or "dark"
      * @return Complete iframe HTML string
      */
-    fun generate(iframeUrl: String): String {
+    fun generate(iframeUrl: String, theme: String): String {
+        // Append pr_theme parameter to the iframe URL
+        val separator = if (iframeUrl.contains("?")) "&" else "?"
+        val urlWithTheme = "$iframeUrl${separator}pr_theme=$theme"
+        
         // Only escape quotes for HTML attribute - don't escape & in URLs
         // URLs in HTML attributes should keep & as-is for query parameters
-        val escapedUrl = iframeUrl.replace("\"", "&quot;")
+        val escapedUrl = urlWithTheme.replace("\"", "&quot;")
         
         // Generate iframe HTML with proper attributes
         return """

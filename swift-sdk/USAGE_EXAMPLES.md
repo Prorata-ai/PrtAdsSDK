@@ -5,11 +5,12 @@ This document provides real-world usage examples for the Gist Ads SDK.
 ## Table of Contents
 
 1. [Basic Examples](#basic-examples)
-2. [Environment Configuration Examples](#environment-configuration-examples)
-3. [AI Search Integration](#ai-search-integration)
-4. [E-commerce Integration](#e-commerce-integration)
-5. [News & Content Apps](#news--content-apps)
-6. [Multi-platform Apps](#multi-platform-apps)
+2. [Theme Support](#theme-support)
+3. [Environment Configuration Examples](#environment-configuration-examples)
+4. [AI Search Integration](#ai-search-integration)
+5. [E-commerce Integration](#e-commerce-integration)
+6. [News & Content Apps](#news--content-apps)
+7. [Multi-platform Apps](#multi-platform-apps)
 
 ---
 
@@ -69,6 +70,167 @@ struct SearchView: View {
                 .frame(height: 250)
                 .padding()
                 .id(searchQuery) // Refresh when query changes
+            }
+        }
+    }
+}
+```
+
+---
+
+## Theme Support
+
+The SDK automatically adapts ads to light and dark mode, with support for system detection and manual override.
+
+### Automatic Theme Detection
+
+By default, ads match the system theme:
+
+```swift
+import SwiftUI
+import GistAdsSDK
+
+struct AutoThemeAdView: View {
+    var body: some View {
+        VStack {
+            Text("Product Review")
+                .font(.title)
+            
+            // Ad automatically matches system light/dark theme
+            GistAdControl(
+                publisherID: "pub-12345",
+                publisherKey: "key-67890",
+                query: "wireless headphones"
+                // theme: "system" is the default
+            )
+            .frame(height: 250)
+        }
+    }
+}
+```
+
+### Manual Theme Override
+
+Force a specific theme:
+
+```swift
+struct LightThemeAdView: View {
+    var body: some View {
+        GistAdControl(
+            publisherID: "pub-12345",
+            publisherKey: "key-67890",
+            query: "running shoes",
+            theme: "light"  // Always light mode
+        )
+        .frame(height: 250)
+    }
+}
+
+struct DarkThemeAdView: View {
+    var body: some View {
+        GistAdControl(
+            publisherID: "pub-12345",
+            publisherKey: "key-67890",
+            query: "smart watch",
+            theme: "dark"  // Always dark mode
+        )
+        .frame(height: 250)
+    }
+}
+```
+
+### Theme Picker UI
+
+Let users choose their preferred ad theme:
+
+```swift
+struct AdWithThemePicker: View {
+    @State private var selectedTheme = "system"
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Ad Theme Settings")
+                .font(.headline)
+            
+            // Theme selector
+            Picker("Theme", selection: $selectedTheme) {
+                Text("System").tag("system")
+                Text("Light").tag("light")
+                Text("Dark").tag("dark")
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            
+            // Ad with selected theme
+            GistAdControl(
+                publisherID: "pub-12345",
+                publisherKey: "key-67890",
+                query: "wireless headphones",
+                theme: selectedTheme
+            )
+            .frame(height: 250)
+            .padding()
+        }
+    }
+}
+```
+
+### Theme with UserDefaults Persistence
+
+Save theme preference:
+
+```swift
+struct PersistentThemeAd: View {
+    @AppStorage("adTheme") private var selectedTheme = "system"
+    
+    var body: some View {
+        VStack {
+            // Theme selector
+            Picker("Ad Theme", selection: $selectedTheme) {
+                Text("System").tag("system")
+                Text("Light").tag("light")
+                Text("Dark").tag("dark")
+            }
+            .pickerStyle(.menu)
+            
+            // Ad with persisted theme
+            GistAdControl(
+                publisherID: "pub-12345",
+                publisherKey: "key-67890",
+                query: "laptops",
+                theme: selectedTheme
+            )
+            .frame(height: 250)
+        }
+    }
+}
+```
+
+### Theme in List/ScrollView
+
+Match ads to your app's theme in lists:
+
+```swift
+struct ProductListView: View {
+    let products = ["headphones", "speakers", "microphones"]
+    @State private var theme = "system"
+    
+    var body: some View {
+        List {
+            ForEach(products, id: \.self) { product in
+                VStack(alignment: .leading) {
+                    Text(product.capitalized)
+                        .font(.headline)
+                    
+                    GistAdControl(
+                        publisherID: "pub-12345",
+                        publisherKey: "key-67890",
+                        query: product,
+                        theme: theme
+                    )
+                    .frame(height: 200)
+                }
+                .listRowInsets(EdgeInsets())
             }
         }
     }
@@ -211,6 +373,7 @@ GistAdControl(
 You can override the default iframe base URLs for any environment using environment variables. This is useful for testing against staging/integration ad tag servers. The iframe base URL automatically matches the `GistAdControl` environment setting.
 
 **Default Iframe Base URLs:**
+
 - Staging: `https://tp-at.staging.prorata.ai`
 - Integration: `https://tp-at.integration.prorata.ai`
 - Production: `https://tp-at.prorata.ai`

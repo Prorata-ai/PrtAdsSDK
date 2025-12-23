@@ -28,6 +28,7 @@ fun QuickDemoScreen() {
     var searchQuery by remember { mutableStateOf("best wireless headphones") }
     var selectedGeo by remember { mutableStateOf("US") }
     var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
+    var selectedTheme by remember { mutableStateOf("system") }
     var imageEnabled by remember { mutableStateOf(true) }
     var textImageEnabled by remember { mutableStateOf(true) }
     var textEnabled by remember { mutableStateOf(true) }
@@ -64,6 +65,8 @@ fun QuickDemoScreen() {
             onTextEnabledChange = { textEnabled = it },
             selectedApiVersion = selectedApiVersion,
             onApiVersionChange = { selectedApiVersion = it; refreshTrigger = UUID.randomUUID() },
+            selectedTheme = selectedTheme,
+            onThemeChange = { selectedTheme = it; refreshTrigger = UUID.randomUUID() },
             onRefresh = { refreshTrigger = UUID.randomUUID() }
         )
         
@@ -73,6 +76,7 @@ fun QuickDemoScreen() {
             selectedGeo = selectedGeo,
             adTypes = adTypes,
             selectedApiVersion = selectedApiVersion,
+            selectedTheme = selectedTheme,
             refreshTrigger = refreshTrigger
         )
         
@@ -129,6 +133,8 @@ private fun ConfigurationSection(
     onTextEnabledChange: (Boolean) -> Unit,
     selectedApiVersion: String,
     onApiVersionChange: (String) -> Unit,
+    selectedTheme: String,
+    onThemeChange: (String) -> Unit,
     onRefresh: () -> Unit
 ) {
     Card(
@@ -252,6 +258,38 @@ private fun ConfigurationSection(
                 }
             }
             
+            // Theme
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Theme",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = selectedTheme == "system",
+                        onClick = { onThemeChange("system") },
+                        label = { Text("System") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = selectedTheme == "light",
+                        onClick = { onThemeChange("light") },
+                        label = { Text("Light") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = selectedTheme == "dark",
+                        onClick = { onThemeChange("dark") },
+                        label = { Text("Dark") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+            
             // Refresh Button
             Button(
                 onClick = onRefresh,
@@ -275,6 +313,7 @@ private fun AdPreviewSection(
     selectedGeo: String,
     adTypes: List<AdType>?,
     selectedApiVersion: String,
+    selectedTheme: String,
     refreshTrigger: UUID
 ) {
     Card(
@@ -308,6 +347,7 @@ private fun AdPreviewSection(
                         geo = selectedGeo,
                         adTypes = adTypes,
                         apiVersion = selectedApiVersion,
+                        theme = selectedTheme,
                         enableLogging = BuildConfig.DEBUG,
                         modifier = Modifier
                             .fillMaxSize()

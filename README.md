@@ -26,7 +26,7 @@ Native SDKs for integrating Gist AI Search Ads into your iOS and Android applica
 maven { url = uri("https://jitpack.io") }
 
 // Add dependency in build.gradle.kts
-implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.0")
+implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.1")
 ```
 
 ## ✨ Features
@@ -35,6 +35,7 @@ implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.0")
 |---------|-----------|---------|
 | Native UI Framework | SwiftUI | Jetpack Compose |
 | Easy Integration | ✅ | ✅ |
+| Dark Mode Support | ✅ | ✅ |
 | Ad Type Filtering | ✅ | ✅ |
 | Geographic Targeting | ✅ | ✅ |
 | WebView Rendering | ✅ | ✅ |
@@ -68,7 +69,7 @@ struct ContentView: View {
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Prorata-ai/PrtAdsSDK.git", from: "1.0.0")
+    .package(url: "https://github.com/Prorata-ai/PrtAdsSDK.git", from: "1.0.2")
 ]
 ```
 
@@ -101,10 +102,10 @@ fun MyScreen() {
 ```kotlin
 // JitPack (Recommended - easiest)
 maven { url = uri("https://jitpack.io") }
-implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.0")
+implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.1")
 
 // Or Maven Central (Coming Soon)
-implementation("com.gist.ads:sdk:1.0.0")
+implementation("com.gist.ads:sdk:1.0.1")
 ```
 
 📚 **Full Documentation**: [android-sdk/README.md](android-sdk/README.md)
@@ -402,8 +403,17 @@ See platform-specific LICENSE files for details.
 
 ## 📈 Version
 
-- **Swift SDK**: 1.0.0
-- **Android SDK**: 1.0.0
+- **Swift SDK**: 1.0.2 - Dark mode support
+- **Android SDK**: 1.0.1 - Dark mode support
+
+### Latest Changes
+
+**v1.0.2 (Swift) / v1.0.1 (Android)**:
+
+- Added automatic dark mode detection via system theme
+- Added manual theme override (light/dark/system)
+- Theme parameter passed to iframe via `pr_theme`
+- Enhanced example apps with theme picker UI
 
 See individual CHANGELOG files for version history:
 

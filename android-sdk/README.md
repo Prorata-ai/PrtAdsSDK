@@ -375,6 +375,89 @@ GistAdControl(
 )
 ```
 
+## Theme Support
+
+The SDK supports light and dark mode for ad content, automatically detecting the system theme or allowing manual override.
+
+### Automatic System Detection (Default)
+
+By default, ads automatically match your device's light/dark theme:
+
+```kotlin
+GistAdControl(
+    publisherId = "your-publisher-id",
+    publisherKey = "your-publisher-key",
+    query = "wireless headphones"
+    // theme = "system" is the default
+)
+```
+
+### Manual Theme Override
+
+Force a specific theme regardless of system settings:
+
+```kotlin
+// Force light mode
+GistAdControl(
+    ...,
+    theme = "light"
+)
+
+// Force dark mode
+GistAdControl(
+    ...,
+    theme = "dark"
+)
+```
+
+### How It Works
+
+The SDK passes a `pr_theme` parameter to the ad iframe:
+
+- **`"system"`** (default) - Detects device theme with `isSystemInDarkTheme()` and passes `"light"` or `"dark"` to the iframe
+- **`"light"`** - Forces light mode in the iframe
+- **`"dark"`** - Forces dark mode in the iframe
+
+The iframe content will adapt using CSS `color-scheme` and invert filters to match the selected theme.
+
+### Example with Theme Picker
+
+```kotlin
+@Composable
+fun AdWithThemePicker() {
+    var selectedTheme by remember { mutableStateOf("system") }
+    
+    Column {
+        // Theme picker
+        Row {
+            FilterChip(
+                selected = selectedTheme == "system",
+                onClick = { selectedTheme = "system" },
+                label = { Text("System") }
+            )
+            FilterChip(
+                selected = selectedTheme == "light",
+                onClick = { selectedTheme = "light" },
+                label = { Text("Light") }
+            )
+            FilterChip(
+                selected = selectedTheme == "dark",
+                onClick = { selectedTheme = "dark" },
+                label = { Text("Dark") }
+            )
+        }
+        
+        // Ad with selected theme
+        GistAdControl(
+            publisherId = "your-publisher-id",
+            publisherKey = "your-publisher-key",
+            query = "wireless headphones",
+            theme = selectedTheme
+        )
+    }
+}
+```
+
 ## Advanced Usage
 
 ### Dynamic Query Updates

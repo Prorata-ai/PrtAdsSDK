@@ -79,6 +79,15 @@ import WebKit
         }
     }
     
+    /// Theme mode: "light", "dark", or "system" (default: "system")
+    @objc public var theme: String = "system" {
+        didSet {
+            if theme != oldValue {
+                needsReload = true
+            }
+        }
+    }
+    
     /// Delegate for ad loading callbacks
     @objc public weak var delegate: GistAdViewDelegate?
     
@@ -90,6 +99,30 @@ import WebKit
     private var needsReload = false
     private var isLoading = false
     private var lastContent: String?
+    
+    /// Resolved theme based on system appearance if theme is "system"
+    private var resolvedTheme: String {
+        switch theme {
+        case "light":
+            return "light"
+        case "dark":
+            return "dark"
+        case "system":
+            // Detect system theme
+            if #available(iOS 13.0, *) {
+                return traitCollection.userInterfaceStyle == .dark ? "dark" : "light"
+            } else {
+                return "light"
+            }
+        default:
+            // Default to system detection for unknown values
+            if #available(iOS 13.0, *) {
+                return traitCollection.userInterfaceStyle == .dark ? "dark" : "light"
+            } else {
+                return "light"
+            }
+        }
+    }
     
     // MARK: - Initialization
     
@@ -157,6 +190,20 @@ import WebKit
         }
     }
     
+    public override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        
+        // Reload if theme is "system" and appearance changed
+        if #available(iOS 13.0, *) {
+            if theme == "system" && previousTraitCollection?.userInterfaceStyle != traitCollection.userInterfaceStyle {
+                needsReload = true
+                if !isLoading && canLoadAd() {
+                    loadAd()
+                }
+            }
+        }
+    }
+    
     // MARK: - Public Methods
     
     /// Load the ad with current configuration
@@ -195,7 +242,8 @@ import WebKit
                 let content = try await apiService.fetchAd(
                     query: query!,
                     geo: geo,
-                    adTypes: swiftAdTypes
+                    adTypes: swiftAdTypes,
+                    theme: resolvedTheme
                 )
                 
                 await MainActor.run {

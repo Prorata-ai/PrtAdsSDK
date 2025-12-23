@@ -26,14 +26,14 @@ JitPack is the **easiest** option - it builds directly from GitHub with no manua
 
    ```bash
    cd /path/to/PrtAdsSDK
-   git tag -a 1.0.0 -m "Release version 1.0.0"
-   git push origin 1.0.0
+   git tag -a 1.0.1 -m "Release version 1.0.1 - Add dark mode support"
+   git push origin 1.0.1
    ```
 
 2. **Create a GitHub Release** (optional but recommended):
    - Go to <https://github.com/Prorata-ai/PrtAdsSDK/releases/new>
    - Select the tag you just created
-   - Add release notes
+   - Add release notes (e.g., "Added theme support for light/dark mode")
    - Publish release
 
 3. **That's it!** JitPack will automatically build when someone first requests the version:
@@ -57,7 +57,7 @@ And in `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.0")
+    implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.1")
 }
 ```
 
@@ -144,7 +144,7 @@ signing.password=your-gpg-password
 1. **Update version** in `sdk.gradle.kts`:
 
    ```kotlin
-   version = "1.0.0"  // Update this
+   version = "1.0.1"  // Update this
    ```
 
 2. **Build and publish**:
@@ -224,7 +224,7 @@ Once published, users simply add:
 
 ```kotlin
 dependencies {
-    implementation("com.gist.ads:sdk:1.0.0")
+    implementation("com.gist.ads:sdk:1.0.1")
 }
 ```
 
@@ -258,7 +258,7 @@ dependencyResolutionManagement {
 
 // In build.gradle.kts
 dependencies {
-    implementation("com.gist.ads:sdk:1.0.0")
+    implementation("com.gist.ads:sdk:1.0.1")
 }
 ```
 
@@ -283,26 +283,31 @@ We use [Semantic Versioning](https://semver.org/):
    version = "1.1.0"  // Update
    ```
 
-2. **Update CHANGELOG.md**:
+2. **Update CHANGELOG.md** or release notes:
 
    ```markdown
-   ## [1.1.0] - 2024-12-20
+   ## [1.0.1] - 2024-12-19
    ### Added
-   - New ad callback feature
-   - Support for TEXT ad type
+   - Dark mode support with automatic theme detection
+   - Theme parameter (light/dark/system) for manual override
+   - pr_theme parameter passed to iframe for theme adaptation
    
-   ### Fixed
-   - Ad click handling issue
+   ## [1.0.0] - 2024-12-01
+   ### Initial Release
+   - Basic ad display functionality
+   - API versioning (v1/v2)
+   - Event callbacks
+   - Ad type filtering
    ```
 
 3. **Commit and tag**:
 
    ```bash
-   git add sdk.gradle.kts CHANGELOG.md
-   git commit -m "Release version 1.1.0"
-   git tag -a 1.1.0 -m "Release version 1.1.0"
+   git add sdk.gradle.kts
+   git commit -m "Release version 1.0.1 - Add dark mode support"
+   git tag -a 1.0.1 -m "Release version 1.0.1 - Add dark mode support"
    git push origin main
-   git push origin 1.1.0
+   git push origin 1.0.1
    ```
 
 4. **Publish** (choose one):
@@ -328,7 +333,7 @@ version = "1.1.0-SNAPSHOT"
 
 **Build fails on JitPack:**
 
-- Check build log at <https://jitpack.io/#Prorata-ai/PrtAdsSDK/1.0.0>
+- Check build log at <https://jitpack.io/#Prorata-ai/PrtAdsSDK/1.0.1>
 - Ensure `jitpack.yml` is correct
 - Verify gradlew has execute permissions: `git update-index --chmod=+x gradlew`
 

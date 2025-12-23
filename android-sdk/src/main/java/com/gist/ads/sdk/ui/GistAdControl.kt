@@ -1,5 +1,6 @@
 package com.gist.ads.sdk.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
@@ -31,6 +32,7 @@ import kotlinx.coroutines.launch
  * @param onAdLoaded Optional callback invoked when ad successfully loads
  * @param onAdClicked Optional callback invoked when user clicks an ad link (provides URL)
  * @param onContentHeightChanged Optional callback invoked when ad content height is measured
+ * @param theme Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)
  */
 @Composable
 fun GistAdControl(
@@ -47,8 +49,22 @@ fun GistAdControl(
     enableLogging: Boolean = false,
     onAdLoaded: (() -> Unit)? = null,
     onAdClicked: ((String) -> Unit)? = null,
-    onContentHeightChanged: ((Float) -> Unit)? = null
+    onContentHeightChanged: ((Float) -> Unit)? = null,
+    theme: String = "system"
 ) {
+    // Detect system theme
+    val isDarkMode = isSystemInDarkTheme()
+    
+    // Resolve theme to "light" or "dark"
+    val resolvedTheme = remember(theme, isDarkMode) {
+        when (theme) {
+            "light" -> "light"
+            "dark" -> "dark"
+            "system" -> if (isDarkMode) "dark" else "light"
+            else -> if (isDarkMode) "dark" else "light"
+        }
+    }
+    
     // State management
     var adContent by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -68,12 +84,13 @@ fun GistAdControl(
     val scope = rememberCoroutineScope()
     
     // Load ad when component is first composed or when key params change
-    LaunchedEffect(query, geo, adTypes, apiVersion) {
+    LaunchedEffect(query, geo, adTypes, apiVersion, resolvedTheme) {
         loadAd(
             apiService = apiService,
             query = query,
             geo = geo,
             adTypes = adTypes,
+            theme = resolvedTheme,
             onSuccess = { content ->
                 adContent = content
                 error = null
@@ -106,6 +123,7 @@ fun GistAdControl(
                                 query = query,
                                 geo = geo,
                                 adTypes = adTypes,
+                                theme = resolvedTheme,
                                 onSuccess = { content ->
                                     adContent = content
                                     error = null
@@ -145,6 +163,7 @@ private suspend fun loadAd(
     query: String,
     geo: String,
     adTypes: List<AdType>?,
+    theme: String,
     onSuccess: (String) -> Unit,
     onError: (AdAPIException) -> Unit,
     onLoading: (Boolean) -> Unit,
@@ -153,7 +172,7 @@ private suspend fun loadAd(
     if (query.isNotBlank()) {
         onLoading(true)
         try {
-            val content = apiService.fetchAd(query, geo, adTypes)
+            val content = apiService.fetchAd(query, geo, adTypes, theme = theme)
             onSuccess(content)
             onAdLoaded?.invoke()
         } catch (e: AdAPIException) {

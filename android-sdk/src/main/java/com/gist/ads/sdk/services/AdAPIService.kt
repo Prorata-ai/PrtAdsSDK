@@ -51,6 +51,7 @@ class AdAPIService(
      * @param geo Geographic location (e.g., "US", "GB")
      * @param adTypes Optional list of ad types to filter
      * @param answer Optional answer string for v2 (defaults to query if null)
+     * @param theme Theme preference - "light" or "dark" (resolved from system if "system" was selected)
      * @return HTML string containing the ad iframe
      * @throws AdAPIException if the request fails
      */
@@ -58,7 +59,8 @@ class AdAPIService(
         query: String,
         geo: String,
         adTypes: List<AdType>?,
-        answer: String? = null
+        answer: String? = null,
+        theme: String
     ): String = withContext(Dispatchers.IO) {
         try {
             // Build request body using factory function
@@ -95,7 +97,7 @@ class AdAPIService(
                 ?: throw AdAPIException.InvalidData
             
             // Parse JSON response and extract iframe URL
-            parseJSONResponse(responseBody)
+            parseJSONResponse(responseBody, theme)
             
         } catch (e: IOException) {
             throw AdAPIException.NetworkError(e)
@@ -109,9 +111,10 @@ class AdAPIService(
     /**
      * Parse JSON response and extract iframe URL
      * @param data Response data containing JSON
+     * @param theme Theme preference for iframe
      * @return HTML string containing the ad iframe
      */
-    private fun parseJSONResponse(data: String): String {
+    private fun parseJSONResponse(data: String, theme: String): String {
         val searchResponse: SearchResponse
         try {
             searchResponse = gson.fromJson(data, SearchResponse::class.java)
@@ -133,8 +136,8 @@ class AdAPIService(
             throw AdAPIException.MissingIframeUrl
         }
         
-        // Generate iframe HTML using utility
-        return IframeHTMLGenerator.generate(iframeUrl)
+        // Generate iframe HTML using utility with theme
+        return IframeHTMLGenerator.generate(iframeUrl, theme)
     }
 }
 
