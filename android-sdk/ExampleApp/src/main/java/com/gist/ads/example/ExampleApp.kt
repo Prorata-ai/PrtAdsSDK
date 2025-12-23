@@ -37,6 +37,20 @@ fun ExampleApp() {
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
+                    icon = { Icon(Icons.Filled.Star, contentDescription = "Quick Demo") },
+                    label = { Text("Demo") },
+                    selected = currentDestination?.hierarchy?.any { it.route == "demo" } == true,
+                    onClick = {
+                        navController.navigate("demo") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+                NavigationBarItem(
                     icon = { Icon(Icons.Filled.Home, contentDescription = "Basic") },
                     label = { Text("Basic") },
                     selected = currentDestination?.hierarchy?.any { it.route == "basic" } == true,
@@ -97,9 +111,10 @@ fun ExampleApp() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "basic",
+            startDestination = "demo",
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable("demo") { QuickDemoScreen() }
             composable("basic") { BasicExampleScreen() }
             composable("search") { SearchExampleScreen() }
             composable("filters") { FilterExampleScreen() }

@@ -12,8 +12,7 @@ object Config {
      * Your publisher ID
      * Get this from your Gist Ads dashboard
      */
-    // const val PUBLISHER_ID = "your-publisher-id"
-    const val PUBLISHER_ID = "guest-api"
+    const val PUBLISHER_ID = "your-publisher-id"
     
     /**
      * Your publisher API key
@@ -52,6 +51,17 @@ object Config {
         "digital cameras",
         "fitness trackers",
         "tablet devices"
+    )
+    
+    /**
+     * Example queries matching Swift SDK - for Quick Demo screen
+     */
+    val EXAMPLE_QUERIES = listOf(
+        "best wireless headphones",
+        "affordable laptops for students",
+        "top rated running shoes",
+        "smart home devices 2024",
+        "healthy meal delivery services"
     )
     
     /**
