@@ -23,6 +23,8 @@ fun BasicExampleScreen() {
     // Callback state tracking
     var adLoadedCount by remember { mutableStateOf(0) }
     var contentHeight by remember { mutableStateOf<Float?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var errorCount by remember { mutableStateOf(0) }
     
     Column(
         modifier = Modifier
@@ -75,13 +77,24 @@ fun BasicExampleScreen() {
                 enableLogging = BuildConfig.DEBUG,
                 onAdLoaded = {
                     adLoadedCount++
+                    errorMessage = null
                     println("✅ Ad loaded! Count: $adLoadedCount")
                 },
                 // onAdClicked removed - ads will automatically open in browser when clicked
                 onContentHeightChanged = { height ->
                     contentHeight = height
                     println("📏 Content height: ${height}px")
-                }
+                },
+                onError = { exception ->
+                    errorCount++
+                    errorMessage = when (exception) {
+                        is com.gist.ads.sdk.services.AdAPIException.HttpError ->
+                            "Error ${exception.statusCode}: ${exception.message}"
+                        else -> exception.message
+                    }
+                    println("❌ Ad error: ${exception.message}")
+                },
+                theme = "system"
             )
         }
         
@@ -105,8 +118,10 @@ fun BasicExampleScreen() {
             title = "Event Callbacks",
             items = listOf(
                 "Ads Loaded" to "$adLoadedCount",
+                "Errors" to "$errorCount",
                 "Content Height" to "${contentHeight?.toInt() ?: "Not measured"}px",
-                "Ad Clicks" to "Open automatically in browser"
+                "Ad Clicks" to "Open automatically in browser",
+                "Last Error" to (errorMessage ?: "None")
             ),
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer

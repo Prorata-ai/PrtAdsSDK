@@ -145,14 +145,36 @@ class AdAPIService(
  * Errors that can occur during API operations
  */
 sealed class AdAPIException(message: String, cause: Throwable? = null) : Exception(message, cause) {
-    object InvalidUrl : AdAPIException("Invalid API URL")
+    object InvalidUrl : AdAPIException("Invalid API URL configured")
     object InvalidResponse : AdAPIException("Invalid response from server")
-    object InvalidData : AdAPIException("Unable to parse response data")
-    data class HttpError(val statusCode: Int) : AdAPIException("HTTP error: $statusCode")
-    object NoAdsAvailable : AdAPIException("No ads available for this query")
-    object MissingIframeUrl : AdAPIException("Ad response missing iframe URL")
-    data class NetworkError(val error: Throwable) : AdAPIException("Network error", error)
-    data class UnknownError(val error: Throwable) : AdAPIException("Unknown error", error)
+    object InvalidData : AdAPIException("Invalid response format: Unable to parse server response")
+    
+    data class HttpError(val statusCode: Int) : AdAPIException(getHttpErrorMessage(statusCode)) {
+        companion object {
+            private fun getHttpErrorMessage(code: Int): String = when (code) {
+                401 -> "Authentication failed: Invalid publisher credentials"
+                403 -> "Access forbidden: Check your publisher permissions"
+                404 -> "API endpoint not found: Verify SDK version compatibility"
+                429 -> "Rate limit exceeded: Too many requests"
+                500 -> "Server error: Please try again later"
+                503 -> "Service temporarily unavailable"
+                else -> "HTTP error $code: Request failed"
+            }
+        }
+    }
+    
+    object NoAdsAvailable : AdAPIException("No ads available: No matching ads found for this query and location")
+    object MissingIframeUrl : AdAPIException("Invalid ad response: Missing iframe URL from server")
+    
+    data class NetworkError(val error: Throwable) : AdAPIException(
+        "Network error: ${error.message ?: "Unable to connect to ad server"}",
+        error
+    )
+    
+    data class UnknownError(val error: Throwable) : AdAPIException(
+        "Unexpected error: ${error.message ?: "Unknown error occurred"}",
+        error
+    )
 }
 
 

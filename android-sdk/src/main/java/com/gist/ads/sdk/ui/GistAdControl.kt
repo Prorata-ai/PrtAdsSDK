@@ -32,6 +32,7 @@ import kotlinx.coroutines.launch
  * @param onAdLoaded Optional callback invoked when ad successfully loads
  * @param onAdClicked Optional callback invoked when user clicks an ad link (provides URL)
  * @param onContentHeightChanged Optional callback invoked when ad content height is measured
+ * @param onError Optional callback invoked when an error occurs during ad loading (provides AdAPIException)
  * @param theme Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)
  */
 @Composable
@@ -50,6 +51,7 @@ fun GistAdControl(
     onAdLoaded: (() -> Unit)? = null,
     onAdClicked: ((String) -> Unit)? = null,
     onContentHeightChanged: ((Float) -> Unit)? = null,
+    onError: ((AdAPIException) -> Unit)? = null,
     theme: String = "system"
 ) {
     // Detect system theme
@@ -98,6 +100,7 @@ fun GistAdControl(
             onError = { e ->
                 error = e
                 adContent = null
+                onError?.invoke(e) // Notify consumer of error
             },
             onLoading = { loading -> isLoading = loading },
             onAdLoaded = onAdLoaded
@@ -131,6 +134,7 @@ fun GistAdControl(
                                 onError = { e ->
                                     error = e
                                     adContent = null
+                                    onError?.invoke(e) // Notify consumer of error on retry
                                 },
                                 onLoading = { loading -> isLoading = loading },
                                 onAdLoaded = onAdLoaded
@@ -228,24 +232,44 @@ private fun ErrorView(
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        // Primary error title - context-specific
         Text(
-            text = "Unable to load ad",
+            text = when (error) {
+                is AdAPIException.HttpError -> when (error.statusCode) {
+                    401 -> "Authentication Failed"
+                    403 -> "Access Denied"
+                    404 -> "Service Not Found"
+                    429 -> "Rate Limit Exceeded"
+                    500, 503 -> "Server Error"
+                    else -> "Unable to Load Ad"
+                }
+                is AdAPIException.NetworkError -> "Connection Error"
+                is AdAPIException.NoAdsAvailable -> "No Ads Available"
+                is AdAPIException.InvalidData -> "Invalid Response"
+                else -> "Unable to Load Ad"
+            },
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
         
         Spacer(modifier = Modifier.height(8.dp))
         
+        // Detailed message with action guidance
         Text(
             text = error.message ?: "Unknown error",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        Button(onClick = onRetry) {
-            Text("Retry")
+        // Show retry button only for recoverable errors
+        // Don't show retry for auth errors (401, 403) as they require credential fixes
+        if (error !is AdAPIException.HttpError || error.statusCode !in listOf(401, 403)) {
+            Button(onClick = onRetry) {
+                Text("Retry")
+            }
         }
     }
 }
