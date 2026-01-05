@@ -1,0 +1,110 @@
+# Gist Ads SDK - Gradle Properties Template
+# Copy this file to:
+#   1. Project root as gradle.properties (gitignored - for local development)
+#   2. ~/.gradle/gradle.properties (for global Gradle config)
+
+# ==============================================================================
+# ANDROID SDK CONFIGURATION
+# ==============================================================================
+
+# Android SDK and build tools
+android.useAndroidX=true
+android.enableJetifier=true
+
+# Gradle JVM settings
+org.gradle.jvmargs=-Xmx2048m -XX:MaxPermSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8
+
+# Gradle daemon settings
+org.gradle.daemon=true
+org.gradle.parallel=true
+org.gradle.configureondemand=true
+org.gradle.caching=true
+
+# Kotlin settings
+kotlin.code.style=official
+kotlin.incremental=true
+
+# ==============================================================================
+# MAVEN CENTRAL PUBLISHING (Required for publishing to Maven Central)
+# ==============================================================================
+
+# Sonatype OSSRH Credentials
+# Sign up at: https://issues.sonatype.org/
+# Request access for group: com.gist.ads
+ossrhUsername=your-sonatype-username
+ossrhPassword=your-sonatype-password
+
+# ==============================================================================
+# GPG SIGNING (Required for Maven Central)
+# ==============================================================================
+
+# Option 1: GPG Keyring File (Traditional method)
+# Generate key: gpg --gen-key
+# Get key ID: gpg --list-secret-keys --keyid-format=long
+signing.keyId=YOUR_KEY_ID_LAST_8_CHARS
+signing.password=your-gpg-passphrase
+signing.secretKeyRingFile=/path/to/.gnupg/secring.gpg
+
+# Option 2: In-Memory Keys (Recommended for CI/CD)
+# Export key: gpg --export-secret-keys YOUR_KEY_ID | base64
+# Uncomment and use instead of keyring file:
+#signing.key=BASE64_ENCODED_PRIVATE_KEY
+#signing.password=your-gpg-passphrase
+
+# ==============================================================================
+# SDK CREDENTIALS (For Example App - DO NOT COMMIT!)
+# ==============================================================================
+
+# Gist Ads Publisher Credentials
+# Get your credentials from: https://gist.com/dashboard
+gistPublisherId=your-publisher-id
+gistPublisherKey=your-publisher-key
+
+# ==============================================================================
+# OPTIONAL: CUSTOM API ENDPOINTS
+# ==============================================================================
+
+# Override default API endpoints (optional)
+# Uncomment to use custom endpoints:
+#gist.ads.staging.url=https://custom-staging.example.com
+#gist.ads.integration.url=https://custom-integration.example.com
+#gist.ads.production.url=https://custom-production.example.com
+
+# Override default iframe base URLs (optional)
+#gist.ads.staging.iframe.url=https://custom-staging-iframe.example.com
+#gist.ads.integration.iframe.url=https://custom-integration-iframe.example.com
+#gist.ads.production.iframe.url=https://custom-production-iframe.example.com
+
+# Override default API version (optional)
+#gist.ads.api.version=v2
+
+# ==============================================================================
+# ENVIRONMENT VARIABLES (Alternative to properties)
+# ==============================================================================
+
+# You can also set these as environment variables instead:
+#   export OSSRH_USERNAME="your-username"
+#   export OSSRH_PASSWORD="your-password"
+#   export SIGNING_KEY="base64-encoded-key"
+#   export SIGNING_PASSWORD="your-passphrase"
+#   export GIST_PUBLISHER_ID="your-id"
+#   export GIST_PUBLISHER_KEY="your-key"
+
+# ==============================================================================
+# NOTES
+# ==============================================================================
+
+# SECURITY WARNINGS:
+# 1. NEVER commit this file with real credentials to git
+# 2. Add gradle.properties to .gitignore
+# 3. Use environment variables for CI/CD pipelines
+# 4. Store GPG keys securely (password manager, encrypted storage)
+# 5. Rotate credentials if compromised
+
+# PUBLISHING WORKFLOW:
+# 1. For JitPack: No credentials needed (builds from GitHub)
+# 2. For Maven Central: Requires OSSRH and GPG credentials
+# 3. For local testing: Use publishToMavenLocal (no credentials)
+
+# MORE INFORMATION:
+# See PUBLISHING.md for detailed publishing instructions

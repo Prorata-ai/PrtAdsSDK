@@ -5,13 +5,16 @@ Comprehensive examples for using the Gist Ads SDK in your Android application.
 ## Table of Contents
 
 1. [Basic Usage](#basic-usage)
-2. [Dynamic Search Integration](#dynamic-search-integration)
-3. [Ad Type Filtering](#ad-type-filtering)
-4. [Geographic Targeting](#geographic-targeting)
-5. [Custom Styling](#custom-styling)
-6. [Advanced Patterns](#advanced-patterns)
-7. [Error Handling](#error-handling)
-8. [Performance Optimization](#performance-optimization)
+2. [API Versioning](#api-versioning)
+3. [Event Callbacks](#event-callbacks)
+4. [Theme Support](#theme-support)
+5. [Dynamic Search Integration](#dynamic-search-integration)
+6. [Ad Type Filtering](#ad-type-filtering)
+7. [Geographic Targeting](#geographic-targeting)
+8. [Custom Styling](#custom-styling)
+9. [Advanced Patterns](#advanced-patterns)
+10. [Error Handling](#error-handling)
+11. [Performance Optimization](#performance-optimization)
 
 ---
 
@@ -70,7 +73,7 @@ fun CardAdExample() {
 
 ---
 
-## Dynamic Search Integration
+## API Versioning
 
 ### Basic Search
 
@@ -168,6 +171,154 @@ fun KeyboardSearchExample() {
 
 ---
 
+## Theme Support
+
+The SDK automatically adapts ads to light and dark mode, with support for system detection and manual override.
+
+### Automatic Theme Detection (Default)
+
+By default, ads automatically match your device's theme:
+
+```kotlin
+@Composable
+fun AutoThemeAdExample() {
+    GistAdControl(
+        publisherId = "your-publisher-id",
+        publisherKey = "your-publisher-key",
+        query = "wireless headphones"
+        // theme = "system" is the default
+    )
+}
+```
+
+### Manual Theme Override
+
+Force a specific theme for your ads:
+
+```kotlin
+@Composable
+fun LightThemeAdExample() {
+    GistAdControl(
+        publisherId = "your-publisher-id",
+        publisherKey = "your-publisher-key",
+        query = "running shoes",
+        theme = "light"  // Always show light theme
+    )
+}
+
+@Composable
+fun DarkThemeAdExample() {
+    GistAdControl(
+        publisherId = "your-publisher-id",
+        publisherKey = "your-publisher-key",
+        query = "smart watch",
+        theme = "dark"  // Always show dark theme
+    )
+}
+```
+
+### Theme Picker UI
+
+Let users choose their preferred ad theme:
+
+```kotlin
+@Composable
+fun AdWithThemePicker() {
+    var selectedTheme by remember { mutableStateOf("system") }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Theme selector
+        Text(
+            text = "Ad Theme",
+            style = MaterialTheme.typography.labelMedium
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilterChip(
+                selected = selectedTheme == "system",
+                onClick = { selectedTheme = "system" },
+                label = { Text("System") },
+                modifier = Modifier.weight(1f)
+            )
+            FilterChip(
+                selected = selectedTheme == "light",
+                onClick = { selectedTheme = "light" },
+                label = { Text("Light") },
+                modifier = Modifier.weight(1f)
+            )
+            FilterChip(
+                selected = selectedTheme == "dark",
+                onClick = { selectedTheme = "dark" },
+                label = { Text("Dark") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        // Ad with selected theme
+        GistAdControl(
+            publisherId = "your-publisher-id",
+            publisherKey = "your-publisher-key",
+            query = "wireless headphones",
+            theme = selectedTheme,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+        )
+    }
+}
+```
+
+### Theme with State Persistence
+
+Save theme preference across app restarts:
+
+```kotlin
+@Composable
+fun PersistentThemeAd() {
+    val context = LocalContext.current
+    val sharedPrefs = context.getSharedPreferences("ad_prefs", Context.MODE_PRIVATE)
+    var selectedTheme by remember { 
+        mutableStateOf(sharedPrefs.getString("ad_theme", "system") ?: "system") 
+    }
+    
+    fun saveTheme(theme: String) {
+        selectedTheme = theme
+        sharedPrefs.edit().putString("ad_theme", theme).apply()
+    }
+    
+    Column {
+        // Theme selector
+        Row {
+            listOf("system", "light", "dark").forEach { theme ->
+                FilterChip(
+                    selected = selectedTheme == theme,
+                    onClick = { saveTheme(theme) },
+                    label = { Text(theme.capitalize()) }
+                )
+            }
+        }
+        
+        // Ad
+        GistAdControl(
+            publisherId = "your-publisher-id",
+            publisherKey = "your-publisher-key",
+            query = "laptops",
+            theme = selectedTheme
+        )
+    }
+}
+```
+
+---
+
 ## Ad Type Filtering
 
 ### Filter Specific Ad Types
@@ -179,22 +330,24 @@ fun FilteredAdsExample() {
         publisherId = "your-publisher-id",
         publisherKey = "your-publisher-key",
         query = "laptops",
-        adTypes = listOf(AdType.IMAGE, AdType.IMAGE_TEXT)
+        adTypes = listOf(AdType.IMAGE, AdType.TEXT_IMAGE, AdType.TEXT)
     )
 }
 ```
 
-### Dynamic Ad Type Selection
+### Dynamic Ad Type Selection with All Three Types
 
 ```kotlin
 @Composable
 fun DynamicFilterExample() {
     var showImages by remember { mutableStateOf(true) }
-    var showImageText by remember { mutableStateOf(true) }
+    var showTextImage by remember { mutableStateOf(true) }
+    var showText by remember { mutableStateOf(true) }
     
     val adTypes = buildList {
         if (showImages) add(AdType.IMAGE)
-        if (showImageText) add(AdType.IMAGE_TEXT)
+        if (showTextImage) add(AdType.TEXT_IMAGE)
+        if (showText) add(AdType.TEXT)
     }.ifEmpty { null }
     
     Column {
@@ -214,10 +367,28 @@ fun DynamicFilterExample() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Image/Text Ads")
+            Text("Text/Image Ads")
             Switch(
-                checked = showImageText,
-                onCheckedChange = { showImageText = it }
+                checked = showTextImage,
+                onCheckedChange = { showTextImage = it }
+            )
+        }
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Text Ads")
+            Switch(
+                checked = showText,
+                onCheckedChange = { showText = it }
+            )
+        }
+        
+        if (adTypes == null) {
+            Text(
+                text = "⚠️ All ad types disabled",
+                color = MaterialTheme.colorScheme.error
             )
         }
         
@@ -565,7 +736,7 @@ fun LazyLoadAdExample() {
 
 ## Debug Mode
 
-Enable logging for development:
+Enable logging for development to see API requests, responses, and errors:
 
 ```kotlin
 @Composable
@@ -577,6 +748,45 @@ fun DebugAdExample() {
         enableLogging = BuildConfig.DEBUG // Only in debug builds
     )
 }
+```
+
+### View Debug Logs
+
+**Using adb logcat:**
+
+```bash
+# Filter by SDK
+adb logcat | grep "GistAds"
+
+# Filter by your app
+adb logcat | grep "com.yourapp"
+
+# View all errors
+adb logcat *:E
+
+# Combined filter
+adb logcat | grep -E "GistAds|Exception|Error"
+```
+
+**In Android Studio:**
+
+1. Open Logcat panel (bottom of IDE)
+2. Select your device
+3. Filter by tag: `GistAds`
+4. Or filter by package: `com.gist.ads`
+
+### Debug Output Examples
+
+When `enableLogging = true`, you'll see:
+
+```
+D/GistAds: → API Request
+D/GistAds:   POST /v2/search
+D/GistAds:   Headers: Publisher-ID, Publisher-Key
+D/GistAds:   Body: {"prompt":"wireless headphones","geo":"US",...}
+D/GistAds: ← API Response (200 OK)
+D/GistAds:   selection: [iframeUrl: https://...]
+D/GistAds: ✅ Ad loaded successfully
 ```
 
 ---
@@ -591,8 +801,13 @@ fun CompleteExample() {
     var searchText by remember { mutableStateOf("") }
     var debouncedQuery by remember { mutableStateOf("") }
     var selectedGeo by remember { mutableStateOf("US") }
+    var selectedApiVersion by remember { mutableStateOf("v2") }
     var imageEnabled by remember { mutableStateOf(true) }
-    var imageTextEnabled by remember { mutableStateOf(true) }
+    var textImageEnabled by remember { mutableStateOf(true) }
+    var textEnabled by remember { mutableStateOf(true) }
+    var adLoadCount by remember { mutableStateOf(0) }
+    var adHeight by remember { mutableStateOf(250.dp) }
+    val density = LocalDensity.current
     
     // Debounce
     LaunchedEffect(searchText) {
@@ -603,41 +818,76 @@ fun CompleteExample() {
     // Build ad types
     val adTypes = buildList {
         if (imageEnabled) add(AdType.IMAGE)
-        if (imageTextEnabled) add(AdType.IMAGE_TEXT)
+        if (textImageEnabled) add(AdType.TEXT_IMAGE)
+        if (textEnabled) add(AdType.TEXT)
     }.ifEmpty { null }
     
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        Text("Gist Ads Demo", style = MaterialTheme.typography.headlineMedium)
+        
         // Search field
         OutlinedTextField(
             value = searchText,
             onValueChange = { searchText = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Search...") }
+            label = { Text("Search...") },
+            placeholder = { Text("wireless headphones") }
         )
         
-        // Filters
+        // API Version selector
+        Text("API Version", style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("v1", "v2").forEach { version ->
+                FilterChip(
+                    selected = selectedApiVersion == version,
+                    onClick = { selectedApiVersion = version },
+                    label = { Text(version.uppercase()) }
+                )
+            }
+        }
+        
+        // Ad type filters
+        Text("Ad Types", style = MaterialTheme.typography.labelLarge)
         Row {
-            Switch(checked = imageEnabled, onCheckedChange = { imageEnabled = it })
-            Text("Images")
-            Spacer(modifier = Modifier.width(16.dp))
-            Switch(checked = imageTextEnabled, onCheckedChange = { imageTextEnabled = it })
-            Text("Image/Text")
+            Checkbox(checked = imageEnabled, onCheckedChange = { imageEnabled = it })
+            Text("Images", modifier = Modifier.align(Alignment.CenterVertically))
+            Spacer(modifier = Modifier.width(8.dp))
+            Checkbox(checked = textImageEnabled, onCheckedChange = { textImageEnabled = it })
+            Text("Text/Image", modifier = Modifier.align(Alignment.CenterVertically))
+            Spacer(modifier = Modifier.width(8.dp))
+            Checkbox(checked = textEnabled, onCheckedChange = { textEnabled = it })
+            Text("Text", modifier = Modifier.align(Alignment.CenterVertically))
         }
         
         // Region selector
-        // (ExposedDropdownMenuBox implementation)
+        Text("Region", style = MaterialTheme.typography.labelLarge)
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf("US", "GB", "CA", "AU", "DE", "FR", "JP", "IN").forEach { region ->
+                FilterChip(
+                    selected = selectedGeo == region,
+                    onClick = { selectedGeo = region },
+                    label = { Text(region) }
+                )
+            }
+        }
         
-        // Ad
+        Divider()
+        
+        // Ad display
         if (debouncedQuery.isNotBlank()) {
+            Text("Ad Preview", style = MaterialTheme.typography.titleMedium)
+            
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 GistAdControl(
                     publisherId = BuildConfig.GIST_PUBLISHER_ID,
@@ -645,8 +895,59 @@ fun CompleteExample() {
                     query = debouncedQuery,
                     geo = selectedGeo,
                     adTypes = adTypes,
-                    enableLogging = BuildConfig.DEBUG
+                    apiVersion = selectedApiVersion,
+                    enableLogging = BuildConfig.DEBUG,
+                    onAdLoaded = {
+                        adLoadCount++
+                        println("✅ Ad #$adLoadCount loaded")
+                    },
+                    onContentHeightChanged = { heightPx ->
+                        adHeight = with(density) { heightPx.toDp() }
+                        println("📏 Height: $adHeight")
+                    },
+                    // onAdClicked not provided - opens in browser automatically
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(adHeight)
                 )
+            }
+            
+            // Stats
+            Divider()
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Stats", style = MaterialTheme.typography.titleSmall)
+                    Text("Query: $debouncedQuery")
+                    Text("Region: $selectedGeo")
+                    Text("API: $selectedApiVersion")
+                    Text("Types: ${adTypes?.joinToString { it.displayName } ?: "All"}")
+                    Text("Loads: $adLoadCount")
+                    Text("Height: ${adHeight.value.toInt()}dp")
+                    Text("Clicks: Open in browser")
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Start typing to see ads",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }
@@ -664,5 +965,4 @@ fun CompleteExample() {
 
 ---
 
-**Need Help?** Contact support@gist.com
-
+**Need Help?** Contact <support@gist.com>

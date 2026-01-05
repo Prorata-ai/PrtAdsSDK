@@ -5,16 +5,29 @@ Native SDKs for integrating Gist AI Search Ads into your iOS and Android applica
 ## 📦 Available SDKs
 
 ### iOS / macOS (Swift)
+
 - **Location**: [`swift-sdk/`](swift-sdk/)
 - **Framework**: SwiftUI
 - **Min Version**: iOS 15.0+, macOS 12.0+
 - **Language**: Swift 5.9+
 
 ### Android
+
 - **Location**: [`android-sdk/`](android-sdk/)
 - **Framework**: Jetpack Compose
 - **Min Version**: Android 7.0+ (API 24+)
 - **Language**: Kotlin 1.9+
+- **Installation**: JitPack (recommended) or Maven Central (coming soon)
+
+**Quick Install:**
+
+```kotlin
+// Add JitPack repository in settings.gradle.kts
+maven { url = uri("https://jitpack.io") }
+
+// Add dependency in build.gradle.kts
+implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.1")
+```
 
 ## ✨ Features
 
@@ -22,6 +35,7 @@ Native SDKs for integrating Gist AI Search Ads into your iOS and Android applica
 |---------|-----------|---------|
 | Native UI Framework | SwiftUI | Jetpack Compose |
 | Easy Integration | ✅ | ✅ |
+| Dark Mode Support | ✅ | ✅ |
 | Ad Type Filtering | ✅ | ✅ |
 | Geographic Targeting | ✅ | ✅ |
 | WebView Rendering | ✅ | ✅ |
@@ -52,9 +66,10 @@ struct ContentView: View {
 ```
 
 **Installation** (Swift Package Manager):
+
 ```swift
 dependencies: [
-    .package(url: "https://github.com/Prorata-ai/PrtAdsSDK.git", from: "1.0.0")
+    .package(url: "https://github.com/Prorata-ai/PrtAdsSDK.git", from: "1.0.2")
 ]
 ```
 
@@ -83,10 +98,14 @@ fun MyScreen() {
 ```
 
 **Installation** (Gradle):
+
 ```kotlin
-dependencies {
-    implementation("com.gist.ads:sdk:1.0.0")
-}
+// JitPack (Recommended - easiest)
+maven { url = uri("https://jitpack.io") }
+implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.1")
+
+// Or Maven Central (Coming Soon)
+implementation("com.gist.ads:sdk:1.0.1")
 ```
 
 📚 **Full Documentation**: [android-sdk/README.md](android-sdk/README.md)
@@ -124,11 +143,13 @@ Both SDKs require the same credentials:
 Both SDKs include fully functional example applications:
 
 ### iOS Example App
+
 - **Location**: `swift-sdk/ExampleApp/`
 - Features: Basic integration, dynamic search, ad filtering, settings
 - Open `ProrataAdsExample.xcodeproj` in Xcode
 
 ### Android Example App
+
 - **Location**: `android-sdk/ExampleApp/`
 - Features: Basic integration, dynamic search, ad filtering, settings
 - Open in Android Studio or run: `./gradlew :ExampleApp:installDebug`
@@ -156,6 +177,7 @@ Both SDKs communicate with the same backend:
 ## 📖 Documentation Structure
 
 ### Swift SDK (`swift-sdk/`)
+
 - `README.md` - Main documentation
 - `QUICK_START.md` - 5-minute setup guide
 - `INTEGRATION_GUIDE.md` - Detailed integration
@@ -163,6 +185,7 @@ Both SDKs communicate with the same backend:
 - `ExampleApp/` - Working demo app
 
 ### Android SDK (`android-sdk/`)
+
 - `README.md` - Main documentation
 - `QUICK_START.md` - 5-minute setup guide
 - `INTEGRATION_GUIDE.md` - Detailed integration
@@ -174,6 +197,7 @@ Both SDKs communicate with the same backend:
 ### Dynamic Search with Debouncing
 
 **Swift**:
+
 ```swift
 @State private var searchQuery = ""
 
@@ -190,6 +214,7 @@ if !searchQuery.isEmpty {
 ```
 
 **Android**:
+
 ```kotlin
 var searchText by remember { mutableStateOf("") }
 var debouncedQuery by remember { mutableStateOf("") }
@@ -213,6 +238,7 @@ if (debouncedQuery.isNotBlank()) {
 ### Ad Type Filtering
 
 **Swift**:
+
 ```swift
 GistAdControl(
     publisherID: "your-id",
@@ -223,6 +249,7 @@ GistAdControl(
 ```
 
 **Android**:
+
 ```kotlin
 GistAdControl(
     publisherId = "your-id",
@@ -237,11 +264,13 @@ GistAdControl(
 ### Prerequisites
 
 **Swift SDK**:
+
 - Xcode 14.0+
 - Swift 5.9+
 - iOS 15+ / macOS 12+ deployment target
 
 **Android SDK**:
+
 - Android Studio Arctic Fox+
 - Kotlin 1.9+
 - Gradle 8.0+
@@ -250,6 +279,7 @@ GistAdControl(
 ### Building from Source
 
 **Swift**:
+
 ```bash
 cd swift-sdk
 swift build
@@ -257,6 +287,7 @@ swift build
 ```
 
 **Android**:
+
 ```bash
 cd android-sdk
 ./gradlew build
@@ -275,12 +306,14 @@ cd android-sdk
 ### Example: Secure Configuration
 
 **Swift** (`.xcconfig`):
+
 ```
 GIST_PUBLISHER_ID = your-publisher-id
 GIST_PUBLISHER_KEY = your-publisher-key
 ```
 
 **Android** (`gradle.properties`):
+
 ```properties
 gistPublisherId=your-publisher-id
 gistPublisherKey=your-publisher-key
@@ -289,12 +322,14 @@ gistPublisherKey=your-publisher-key
 ## 🧪 Testing
 
 Both SDKs include:
+
 - Unit tests for models and business logic
 - Integration tests for API communication
 - UI tests for components
 - Example apps for manual testing
 
 Run tests:
+
 ```bash
 # Swift
 swift test
@@ -315,12 +350,14 @@ swift test
 ### Common Issues
 
 **Ads not loading?**
+
 - Verify credentials are correct
 - Check network connectivity
 - Ensure query is not empty
 - Review API logs (enable debug mode)
 
 **Build errors?**
+
 - Swift: Ensure minimum deployment target
 - Android: Verify Gradle sync completed
 - Check all dependencies are resolved
@@ -328,11 +365,13 @@ swift test
 ### Debug Mode
 
 **Swift**:
+
 ```swift
 GistAdControl(...) // Logging automatic in debug builds
 ```
 
 **Android**:
+
 ```kotlin
 GistAdControl(
     ...,
@@ -348,13 +387,14 @@ See platform-specific LICENSE files for details.
 
 ## 🤝 Support
 
-- **Email**: support@gist.com
+- **Email**: <support@gist.com>
 - **Swift Documentation**: [swift-sdk/README.md](swift-sdk/README.md)
 - **Android Documentation**: [android-sdk/README.md](android-sdk/README.md)
 
 ## 🗺️ Roadmap
 
 ### Coming Soon
+
 - Video ad support
 - Banner ad sizes
 - Ad caching and preloading
@@ -363,10 +403,20 @@ See platform-specific LICENSE files for details.
 
 ## 📈 Version
 
-- **Swift SDK**: 1.0.0
-- **Android SDK**: 1.0.0
+- **Swift SDK**: 1.0.2 - Dark mode support
+- **Android SDK**: 1.0.1 - Dark mode support
+
+### Latest Changes
+
+**v1.0.2 (Swift) / v1.0.1 (Android)**:
+
+- Added automatic dark mode detection via system theme
+- Added manual theme override (light/dark/system)
+- Theme parameter passed to iframe via `pr_theme`
+- Enhanced example apps with theme picker UI
 
 See individual CHANGELOG files for version history:
+
 - [swift-sdk/CHANGELOG.md](swift-sdk/CHANGELOG.md)
 - [android-sdk/CHANGELOG.md](android-sdk/CHANGELOG.md)
 
@@ -383,4 +433,3 @@ Or explore the example apps:
 
 - **Swift** → [swift-sdk/ExampleApp/](swift-sdk/ExampleApp/)
 - **Android** → [android-sdk/ExampleApp/](android-sdk/ExampleApp/)
-

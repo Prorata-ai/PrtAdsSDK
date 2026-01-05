@@ -1,5 +1,6 @@
 package com.gist.ads.sdk.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
@@ -8,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.gist.ads.sdk.APIConstants
 import com.gist.ads.sdk.models.AdType
 import com.gist.ads.sdk.services.AdAPIException
 import com.gist.ads.sdk.services.AdAPIService
@@ -21,9 +23,19 @@ import kotlinx.coroutines.launch
  * @param query Search query to fetch relevant ads for
  * @param geo Geographic location code (e.g., "US", "GB", "CA")
  * @param adTypes Optional list of ad types to filter (null = all types)
+ * @param environment API environment (defaults to production)
+ * @param apiVersion API version to use (defaults to v2, or from system property)
+ * @param customBaseUrl Optional custom base URL to override environment default
+ * @param customIframeUrl Optional custom iframe base URL to override environment default (reserved for future use)
  * @param modifier Modifier for styling the ad control
  * @param enableLogging Enable API request/response logging for debugging
+ * @param onAdLoaded Optional callback invoked when ad successfully loads
+ * @param onAdClicked Optional callback invoked when user clicks an ad link (provides URL)
+ * @param onContentHeightChanged Optional callback invoked when ad content height is measured
+ * @param onError Optional callback invoked when an error occurs during ad loading (provides AdAPIException)
+ * @param theme Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun GistAdControl(
     publisherId: String,
@@ -31,20 +43,43 @@ fun GistAdControl(
     query: String,
     geo: String = "US",
     adTypes: List<AdType>? = null,
+    environment: APIConstants.Environment = APIConstants.Environment.PRODUCTION,
+    apiVersion: String = APIConstants.defaultApiVersion(),
+    customBaseUrl: String? = null,
+    customIframeUrl: String? = null,
     modifier: Modifier = Modifier,
-    enableLogging: Boolean = false
+    enableLogging: Boolean = false,
+    onAdLoaded: (() -> Unit)? = null,
+    onAdClicked: ((String) -> Unit)? = null,
+    onContentHeightChanged: ((Float) -> Unit)? = null,
+    onError: ((AdAPIException) -> Unit)? = null,
+    theme: String = "system"
 ) {
+    // Detect system theme
+    val isDarkMode = isSystemInDarkTheme()
+    
+    // Resolve theme to "light" or "dark"
+    val resolvedTheme = remember(theme, isDarkMode) {
+        when (theme) {
+            "light" -> "light"
+            "dark" -> "dark"
+            "system" -> if (isDarkMode) "dark" else "light"
+            else -> if (isDarkMode) "dark" else "light"
+        }
+    }
+    
     // State management
     var adContent by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<AdAPIException?>(null) }
     
     // API service
-    val apiService = remember(publisherId, publisherKey, enableLogging) {
+    val apiService = remember(publisherId, publisherKey, environment, apiVersion, customBaseUrl, enableLogging) {
         AdAPIService(
-            baseUrl = API_BASE_URL,
+            baseUrl = customBaseUrl ?: environment.baseUrl,
             publisherId = publisherId,
             publisherKey = publisherKey,
+            apiVersion = apiVersion,
             enableLogging = enableLogging
         )
     }
@@ -52,26 +87,25 @@ fun GistAdControl(
     val scope = rememberCoroutineScope()
     
     // Load ad when component is first composed or when key params change
-    LaunchedEffect(query, geo, adTypes) {
-        if (query.isNotBlank()) {
-            isLoading = true
-            error = null
-            
-            try {
-                val content = apiService.fetchAd(
-                    query = query,
-                    geo = geo,
-                    adTypes = adTypes
-                )
+    LaunchedEffect(query, geo, adTypes, apiVersion, resolvedTheme) {
+        loadAd(
+            apiService = apiService,
+            query = query,
+            geo = geo,
+            adTypes = adTypes,
+            theme = resolvedTheme,
+            onSuccess = { content ->
                 adContent = content
                 error = null
-            } catch (e: AdAPIException) {
+            },
+            onError = { e ->
                 error = e
                 adContent = null
-            } finally {
-                isLoading = false
-            }
-        }
+                onError?.invoke(e) // Notify consumer of error
+            },
+            onLoading = { loading -> isLoading = loading },
+            onAdLoaded = onAdLoaded
+        )
     }
     
     // Render UI based on state
@@ -88,23 +122,24 @@ fun GistAdControl(
                     error = error!!,
                     onRetry = {
                         scope.launch {
-                            isLoading = true
-                            error = null
-                            
-                            try {
-                                val content = apiService.fetchAd(
-                                    query = query,
-                                    geo = geo,
-                                    adTypes = adTypes
-                                )
-                                adContent = content
-                                error = null
-                            } catch (e: AdAPIException) {
-                                error = e
-                                adContent = null
-                            } finally {
-                                isLoading = false
-                            }
+                            loadAd(
+                                apiService = apiService,
+                                query = query,
+                                geo = geo,
+                                adTypes = adTypes,
+                                theme = resolvedTheme,
+                                onSuccess = { content ->
+                                    adContent = content
+                                    error = null
+                                },
+                                onError = { e ->
+                                    error = e
+                                    adContent = null
+                                    onError?.invoke(e) // Notify consumer of error on retry
+                                },
+                                onLoading = { loading -> isLoading = loading },
+                                onAdLoaded = onAdLoaded
+                            )
                         }
                     }
                 )
@@ -112,12 +147,43 @@ fun GistAdControl(
             adContent != null -> {
                 AdWebView(
                     htmlContent = adContent!!,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    onAdClicked = onAdClicked,
+                    onContentHeightChanged = onContentHeightChanged
                 )
             }
             else -> {
                 EmptyView()
             }
+        }
+    }
+}
+
+/**
+ * Helper function to load ad and update state
+ * Eliminates code duplication between initial load and retry
+ */
+private suspend fun loadAd(
+    apiService: AdAPIService,
+    query: String,
+    geo: String,
+    adTypes: List<AdType>?,
+    theme: String,
+    onSuccess: (String) -> Unit,
+    onError: (AdAPIException) -> Unit,
+    onLoading: (Boolean) -> Unit,
+    onAdLoaded: (() -> Unit)?
+) {
+    if (query.isNotBlank()) {
+        onLoading(true)
+        try {
+            val content = apiService.fetchAd(query, geo, adTypes, theme = theme)
+            onSuccess(content)
+            onAdLoaded?.invoke()
+        } catch (e: AdAPIException) {
+            onError(e)
+        } finally {
+            onLoading(false)
         }
     }
 }
@@ -167,24 +233,44 @@ private fun ErrorView(
         
         Spacer(modifier = Modifier.height(16.dp))
         
+        // Primary error title - context-specific
         Text(
-            text = "Unable to load ad",
+            text = when (error) {
+                is AdAPIException.HttpError -> when (error.statusCode) {
+                    401 -> "Authentication Failed"
+                    403 -> "Access Denied"
+                    404 -> "Service Not Found"
+                    429 -> "Rate Limit Exceeded"
+                    500, 503 -> "Server Error"
+                    else -> "Unable to Load Ad"
+                }
+                is AdAPIException.NetworkError -> "Connection Error"
+                is AdAPIException.NoAdsAvailable -> "No Ads Available"
+                is AdAPIException.InvalidData -> "Invalid Response"
+                else -> "Unable to Load Ad"
+            },
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
         
         Spacer(modifier = Modifier.height(8.dp))
         
+        // Detailed message with action guidance
         Text(
             text = error.message ?: "Unknown error",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        Button(onClick = onRetry) {
-            Text("Retry")
+        // Show retry button only for recoverable errors
+        // Don't show retry for auth errors (401, 403) as they require credential fixes
+        if (error !is AdAPIException.HttpError || error.statusCode !in listOf(401, 403)) {
+            Button(onClick = onRetry) {
+                Text("Retry")
+            }
         }
     }
 }
@@ -207,9 +293,4 @@ private fun EmptyView() {
         )
     }
 }
-
-/**
- * Production API endpoint - managed internally
- */
-private const val API_BASE_URL = "https://tp-srch-api.gist.ai"
 

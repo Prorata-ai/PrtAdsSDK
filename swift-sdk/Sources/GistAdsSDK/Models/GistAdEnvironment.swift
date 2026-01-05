@@ -13,8 +13,8 @@ import Foundation
     case integration = 1
     case production = 2
     
-    /// Convert to SwiftUI Environment type
-    internal var swiftEnvironment: GistAdControl.Environment {
+    /// Convert to SwiftUI APIEnvironment type
+    internal var swiftEnvironment: GistAdControl.APIEnvironment {
         switch self {
         case .staging:
             return .staging

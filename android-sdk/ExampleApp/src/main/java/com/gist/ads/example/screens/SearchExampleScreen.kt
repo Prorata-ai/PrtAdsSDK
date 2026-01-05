@@ -9,12 +9,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.gist.ads.example.BuildConfig
 import com.gist.ads.example.Config
+import com.gist.ads.example.ui.*
 import com.gist.ads.sdk.ui.GistAdControl
 import kotlinx.coroutines.delay
 
@@ -25,6 +28,8 @@ import kotlinx.coroutines.delay
 fun SearchExampleScreen() {
     var searchText by remember { mutableStateOf("") }
     var debouncedQuery by remember { mutableStateOf("") }
+    var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
     
     // Debounce search input
@@ -51,7 +56,7 @@ fun SearchExampleScreen() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Search field
         OutlinedTextField(
@@ -98,7 +103,17 @@ fun SearchExampleScreen() {
             }
         }
         
-        Divider()
+        HorizontalDivider()
+        
+        // API Version selector
+        SectionTitle("API Version")
+        
+        ApiVersionDropdown(
+            selectedVersion = selectedApiVersion,
+            onVersionSelected = { selectedApiVersion = it }
+        )
+        
+        HorizontalDivider()
         
         // Ad display
         if (debouncedQuery.isNotBlank()) {
@@ -107,19 +122,46 @@ fun SearchExampleScreen() {
                 style = MaterialTheme.typography.titleMedium
             )
             
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
+            AdPreviewCard {
                 GistAdControl(
                     publisherId = Config.PUBLISHER_ID,
                     publisherKey = Config.PUBLISHER_KEY,
                     query = debouncedQuery,
                     geo = Config.DEFAULT_GEO,
-                    enableLogging = BuildConfig.DEBUG
+                    apiVersion = selectedApiVersion,
+                    enableLogging = BuildConfig.DEBUG,
+                    onAdLoaded = {
+                        errorMessage = null
+                        println("SearchExample: Ad loaded for query: $debouncedQuery")
+                    },
+                    // onAdClicked removed - ads will automatically open in browser when clicked
+                    onContentHeightChanged = { height ->
+                        println("SearchExample: Content height - ${height}px")
+                    },
+                    onError = { exception ->
+                        errorMessage = exception.message
+                        println("SearchExample: Error - ${exception.message}")
+                    },
+                    theme = "system"
                 )
+            }
+            
+            // Show error message if present
+            errorMessage?.let { error ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = "⚠️ $error",
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -152,7 +194,7 @@ fun SearchExampleScreen() {
             }
         }
         
-        Divider()
+        HorizontalDivider()
         
         // Info
         Card(

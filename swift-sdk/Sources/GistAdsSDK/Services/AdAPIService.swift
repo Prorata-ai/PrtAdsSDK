@@ -28,8 +28,9 @@ class AdAPIService {
     ///   - geo: Geographic location (e.g., "US", "GB")
     ///   - adTypes: Optional array of ad types to filter
     ///   - answer: Optional answer string for v2 (defaults to query if nil)
+    ///   - theme: Theme preference - "light" or "dark" (resolved from system if "system" was selected)
     /// - Returns: HTML string containing the ad iframe
-    func fetchAd(query: String, geo: String, adTypes: [AdType]?, answer: String? = nil) async throws -> String {
+    func fetchAd(query: String, geo: String, adTypes: [AdType]?, answer: String? = nil, theme: String) async throws -> String {
         // Construct the API endpoint using URL(string:relativeTo:) for safer construction
         guard let base = URL(string: baseURL) else {
             throw AdAPIError.invalidURL
@@ -72,23 +73,26 @@ class AdAPIService {
         }
         
         // Handle response based on API version
-        return try handleResponse(version: apiVersion, data: data)
+        return try handleResponse(version: apiVersion, data: data, theme: theme)
     }
     
     /// Handle API response based on version
     /// - Parameters:
     ///   - version: API version string
     ///   - data: Response data
+    ///   - theme: Theme preference for iframe
     /// - Returns: HTML string containing the ad
-    private func handleResponse(version: String, data: Data) throws -> String {
+    private func handleResponse(version: String, data: Data, theme: String) throws -> String {
         // Both v1 and v2 use the same JSON format with selection array
-        return try parseJSONResponse(data: data)
+        return try parseJSONResponse(data: data, theme: theme)
     }
     
     /// Parse JSON response and extract iframe URL
-    /// - Parameter data: Response data containing JSON
+    /// - Parameters:
+    ///   - data: Response data containing JSON
+    ///   - theme: Theme preference for iframe
     /// - Returns: HTML string containing the ad iframe
-    private func parseJSONResponse(data: Data) throws -> String {
+    private func parseJSONResponse(data: Data, theme: String) throws -> String {
         let searchResponse: SearchResponse
         do {
             searchResponse = try JSONDecoder().decode(SearchResponse.self, from: data)
@@ -108,8 +112,8 @@ class AdAPIService {
             throw AdAPIError.missingIframeUrl
         }
 
-        // Generate iframe HTML using utility
-        return IframeHTMLGenerator.generate(iframeUrl: iframeUrl)
+        // Generate iframe HTML using utility with theme
+        return IframeHTMLGenerator.generate(iframeUrl: iframeUrl, theme: theme)
     }
 }
 

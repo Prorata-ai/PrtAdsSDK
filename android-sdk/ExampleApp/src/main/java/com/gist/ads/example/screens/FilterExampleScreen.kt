@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.gist.ads.example.BuildConfig
 import com.gist.ads.example.Config
+import com.gist.ads.example.ui.*
 import com.gist.ads.sdk.models.AdType
 import com.gist.ads.sdk.ui.GistAdControl
 
@@ -17,18 +20,19 @@ import com.gist.ads.sdk.ui.GistAdControl
 @Composable
 fun FilterExampleScreen() {
     var selectedQuery by remember { mutableStateOf(Config.SAMPLE_QUERIES[0]) }
-    var queryExpanded by remember { mutableStateOf(false) }
-    
     var selectedGeo by remember { mutableStateOf(Config.DEFAULT_GEO) }
-    var geoExpanded by remember { mutableStateOf(false) }
+    var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     
     var imageEnabled by remember { mutableStateOf(true) }
-    var imageTextEnabled by remember { mutableStateOf(true) }
+    var textImageEnabled by remember { mutableStateOf(true) }
+    var textEnabled by remember { mutableStateOf(true) }
     
     // Build ad types list
     val adTypes = buildList {
         if (imageEnabled) add(AdType.IMAGE)
-        if (imageTextEnabled) add(AdType.IMAGE_TEXT)
+        if (textImageEnabled) add(AdType.TEXT_IMAGE)
+        if (textEnabled) add(AdType.TEXT)
     }.ifEmpty { null }
     
     Column(
@@ -49,52 +53,21 @@ fun FilterExampleScreen() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Query selector
-        Text(
-            text = "Query",
-            style = MaterialTheme.typography.titleSmall
+        SectionTitle("Query")
+        
+        QueryDropdown(
+            selectedQuery = selectedQuery,
+            onQuerySelected = { selectedQuery = it },
+            label = "Select query"
         )
         
-        ExposedDropdownMenuBox(
-            expanded = queryExpanded,
-            onExpandedChange = { queryExpanded = !queryExpanded }
-        ) {
-            OutlinedTextField(
-                value = selectedQuery,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Select query") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = queryExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-            )
-            
-            ExposedDropdownMenu(
-                expanded = queryExpanded,
-                onDismissRequest = { queryExpanded = false }
-            ) {
-                Config.SAMPLE_QUERIES.forEach { query ->
-                    DropdownMenuItem(
-                        text = { Text(query) },
-                        onClick = {
-                            selectedQuery = query
-                            queryExpanded = false
-                        }
-                    )
-                }
-            }
-        }
-        
-        Divider()
+        HorizontalDivider()
         
         // Ad type filters
-        Text(
-            text = "Ad Types",
-            style = MaterialTheme.typography.titleSmall
-        )
+        SectionTitle("Ad Types")
         
         Card(
             modifier = Modifier.fillMaxWidth()
@@ -118,14 +91,25 @@ fun FilterExampleScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Image/Text Ads")
+                    Text("Text/Image Ads")
                     Switch(
-                        checked = imageTextEnabled,
-                        onCheckedChange = { imageTextEnabled = it }
+                        checked = textImageEnabled,
+                        onCheckedChange = { textImageEnabled = it }
                     )
                 }
                 
-                if (!imageEnabled && !imageTextEnabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Text Ads")
+                    Switch(
+                        checked = textEnabled,
+                        onCheckedChange = { textEnabled = it }
+                    )
+                }
+                
+                if (!imageEnabled && !textImageEnabled && !textEnabled) {
                     Text(
                         text = "⚠️ At least one ad type should be selected",
                         style = MaterialTheme.typography.bodySmall,
@@ -135,104 +119,85 @@ fun FilterExampleScreen() {
             }
         }
         
-        Divider()
+        HorizontalDivider()
         
         // Geographic targeting
-        Text(
-            text = "Geographic Targeting",
-            style = MaterialTheme.typography.titleSmall
+        SectionTitle("Geographic Targeting")
+        
+        GeoDropdown(
+            selectedGeo = selectedGeo,
+            onGeoSelected = { selectedGeo = it }
         )
         
-        ExposedDropdownMenuBox(
-            expanded = geoExpanded,
-            onExpandedChange = { geoExpanded = !geoExpanded }
-        ) {
-            OutlinedTextField(
-                value = Config.AVAILABLE_GEOS.find { it.first == selectedGeo }?.second ?: selectedGeo,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Region") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = geoExpanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-            )
-            
-            ExposedDropdownMenu(
-                expanded = geoExpanded,
-                onDismissRequest = { geoExpanded = false }
-            ) {
-                Config.AVAILABLE_GEOS.forEach { (code, name) ->
-                    DropdownMenuItem(
-                        text = { Text("$name ($code)") },
-                        onClick = {
-                            selectedGeo = code
-                            geoExpanded = false
-                        }
-                    )
-                }
-            }
-        }
+        HorizontalDivider()
         
-        Divider()
+        // API Version selector
+        SectionTitle("API Version")
+        
+        ApiVersionDropdown(
+            selectedVersion = selectedApiVersion,
+            onVersionSelected = { selectedApiVersion = it }
+        )
+        
+        HorizontalDivider()
         
         // Ad display
-        Text(
-            text = "Ad Preview",
-            style = MaterialTheme.typography.titleSmall
-        )
+        SectionTitle("Ad Preview")
         
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
+        AdPreviewCard {
             GistAdControl(
                 publisherId = Config.PUBLISHER_ID,
                 publisherKey = Config.PUBLISHER_KEY,
                 query = selectedQuery,
                 geo = selectedGeo,
                 adTypes = adTypes,
-                enableLogging = BuildConfig.DEBUG
+                apiVersion = selectedApiVersion,
+                enableLogging = BuildConfig.DEBUG,
+                onAdLoaded = {
+                    errorMessage = null
+                    println("FilterExample: Ad loaded - Query: $selectedQuery, Geo: $selectedGeo")
+                },
+                // onAdClicked removed - ads will automatically open in browser when clicked
+                onContentHeightChanged = { height ->
+                    println("FilterExample: Content height - ${height}px")
+                },
+                onError = { exception ->
+                    errorMessage = exception.message
+                    println("FilterExample: Error - ${exception.message}")
+                },
+                theme = "system"
             )
         }
         
-        Divider()
-        
-        // Configuration display
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+        // Show error message if present
+        errorMessage?.let { error ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
             ) {
                 Text(
-                    text = "Current Configuration",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Query: $selectedQuery",
+                    text = "⚠️ $error",
+                    modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Region: ${Config.AVAILABLE_GEOS.find { it.first == selectedGeo }?.second}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Ad Types: ${if (adTypes == null) "All" else adTypes.joinToString(", ") { it.displayName }}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
         }
+        
+        HorizontalDivider()
+        
+        // Configuration display
+        InfoCard(
+            title = "Current Configuration",
+            items = listOf(
+                "Query" to selectedQuery,
+                "Region" to (Config.AVAILABLE_GEOS.find { it.first == selectedGeo }?.second ?: selectedGeo),
+                "Ad Types" to (if (adTypes == null) "All" else adTypes.joinToString(", ") { it.displayName })
+            )
+        )
     }
 }
 

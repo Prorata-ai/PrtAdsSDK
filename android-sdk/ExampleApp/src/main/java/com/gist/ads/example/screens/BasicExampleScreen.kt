@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.gist.ads.example.BuildConfig
 import com.gist.ads.example.Config
+import com.gist.ads.example.ui.*
 import com.gist.ads.sdk.ui.GistAdControl
 
 /**
@@ -16,7 +19,13 @@ import com.gist.ads.sdk.ui.GistAdControl
 @Composable
 fun BasicExampleScreen() {
     var selectedQuery by remember { mutableStateOf(Config.SAMPLE_QUERIES[0]) }
-    var expanded by remember { mutableStateOf(false) }
+    var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
+    
+    // Callback state tracking
+    var adLoadedCount by remember { mutableStateOf(0) }
+    var contentHeight by remember { mutableStateOf<Float?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var errorCount by remember { mutableStateOf(0) }
     
     Column(
         modifier = Modifier
@@ -36,103 +45,88 @@ fun BasicExampleScreen() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Query selector
-        Text(
-            text = "Select a query:",
-            style = MaterialTheme.typography.titleSmall
+        SectionTitle("Select a query:")
+        
+        QueryDropdown(
+            selectedQuery = selectedQuery,
+            onQuerySelected = { selectedQuery = it }
         )
         
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded }
-        ) {
-            OutlinedTextField(
-                value = selectedQuery,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Query") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor()
-            )
-            
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                Config.SAMPLE_QUERIES.forEach { query ->
-                    DropdownMenuItem(
-                        text = { Text(query) },
-                        onClick = {
-                            selectedQuery = query
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
+        // API Version selector
+        SectionTitle("Select API version:")
         
-        Divider()
+        ApiVersionDropdown(
+            selectedVersion = selectedApiVersion,
+            onVersionSelected = { selectedApiVersion = it }
+        )
+        
+        HorizontalDivider()
         
         // Ad display
-        Text(
-            text = "Ad Preview:",
-            style = MaterialTheme.typography.titleSmall
-        )
+        SectionTitle("Ad Preview:")
         
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(250.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
+        AdPreviewCard {
             GistAdControl(
                 publisherId = Config.PUBLISHER_ID,
                 publisherKey = Config.PUBLISHER_KEY,
                 query = selectedQuery,
                 geo = Config.DEFAULT_GEO,
-                enableLogging = BuildConfig.DEBUG
+                apiVersion = selectedApiVersion,
+                enableLogging = BuildConfig.DEBUG,
+                onAdLoaded = {
+                    adLoadedCount++
+                    errorMessage = null
+                    println("✅ Ad loaded! Count: $adLoadedCount")
+                },
+                // onAdClicked removed - ads will automatically open in browser when clicked
+                onContentHeightChanged = { height ->
+                    contentHeight = height
+                    println("📏 Content height: ${height}px")
+                },
+                onError = { exception ->
+                    errorCount++
+                    errorMessage = when (exception) {
+                        is com.gist.ads.sdk.services.AdAPIException.HttpError ->
+                            "Error ${exception.statusCode}: ${exception.message}"
+                        else -> exception.message
+                    }
+                    println("❌ Ad error: ${exception.message}")
+                },
+                theme = "system"
             )
         }
         
-        Divider()
+        HorizontalDivider()
         
         // Info card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+        InfoCard(
+            title = "Configuration",
+            items = listOf(
+                "Query" to selectedQuery,
+                "Geo" to Config.DEFAULT_GEO,
+                "API Version" to selectedApiVersion,
+                "Ad Types" to "All"
             )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Configuration",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Query: $selectedQuery",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Geo: ${Config.DEFAULT_GEO}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-                Text(
-                    text = "Ad Types: All",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
+        )
+        
+        HorizontalDivider()
+        
+        // Event callbacks card
+        InfoCard(
+            title = "Event Callbacks",
+            items = listOf(
+                "Ads Loaded" to "$adLoadedCount",
+                "Errors" to "$errorCount",
+                "Content Height" to "${contentHeight?.toInt() ?: "Not measured"}px",
+                "Ad Clicks" to "Open automatically in browser",
+                "Last Error" to (errorMessage ?: "None")
+            ),
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        )
     }
 }
 

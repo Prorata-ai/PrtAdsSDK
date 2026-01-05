@@ -1,5 +1,7 @@
 package com.gist.ads.example
 
+import com.gist.ads.sdk.APIConstants
+
 /**
  * Configuration for the example app
  * 
@@ -24,6 +26,20 @@ object Config {
     const val DEFAULT_GEO = "US"
     
     /**
+     * API Configuration
+     */
+    val DEFAULT_ENVIRONMENT = APIConstants.Environment.PRODUCTION
+    val DEFAULT_API_VERSION = APIConstants.API_VERSION_V2
+    
+    /**
+     * Available API versions for switching
+     */
+    val AVAILABLE_API_VERSIONS = listOf(
+        APIConstants.API_VERSION_V1 to "API Version 1",
+        APIConstants.API_VERSION_V2 to "API Version 2"
+    )
+    
+    /**
      * Sample search queries for testing
      */
     val SAMPLE_QUERIES = listOf(
@@ -35,6 +51,17 @@ object Config {
         "digital cameras",
         "fitness trackers",
         "tablet devices"
+    )
+    
+    /**
+     * Example queries matching Swift SDK - for Quick Demo screen
+     */
+    val EXAMPLE_QUERIES = listOf(
+        "best wireless headphones",
+        "affordable laptops for students",
+        "top rated running shoes",
+        "smart home devices 2024",
+        "healthy meal delivery services"
     )
     
     /**

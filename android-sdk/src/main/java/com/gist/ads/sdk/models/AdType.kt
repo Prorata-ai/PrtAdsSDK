@@ -9,8 +9,11 @@ enum class AdType(val value: String) {
     @SerializedName("image")
     IMAGE("image"),
     
-    @SerializedName("image/text")
-    IMAGE_TEXT("image/text");
+    @SerializedName("text/image")
+    TEXT_IMAGE("text/image"),
+    
+    @SerializedName("text")
+    TEXT("text");
     
     /**
      * Display name for the ad type
@@ -18,7 +21,8 @@ enum class AdType(val value: String) {
     val displayName: String
         get() = when (this) {
             IMAGE -> "Image"
-            IMAGE_TEXT -> "Image/Text"
+            TEXT_IMAGE -> "Text/Image"
+            TEXT -> "Text"
         }
     
     companion object {

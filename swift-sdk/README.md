@@ -69,7 +69,7 @@ dependencies: [
 ]
 ```
 
-3. **Add the product to your target's dependencies**:
+1. **Add the product to your target's dependencies**:
 
 ```swift
 .target(
@@ -80,7 +80,7 @@ dependencies: [
 )
 ```
 
-4. **Resolve packages**:
+1. **Resolve packages**:
    - In Xcode: **File → Packages → Resolve Package Versions**
    - Or run: `swift package resolve` from terminal
 
@@ -378,6 +378,107 @@ extension MyViewController: GistAdViewDelegate {
     self.adViewHeightConstraint.constant = height;
     [self.view layoutIfNeeded];
 }
+```
+
+## Theme Support
+
+The SDK supports light and dark mode for ad content, automatically detecting the system theme or allowing manual override.
+
+### Automatic System Detection (Default)
+
+By default, ads automatically match your device's light/dark theme:
+
+```swift
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "wireless headphones"
+    // theme: "system" is the default
+)
+```
+
+The SDK uses SwiftUI's `@Environment(\.colorScheme)` to detect the system theme and passes `"light"` or `"dark"` to the ad iframe.
+
+### Manual Theme Override
+
+Force a specific theme regardless of system settings:
+
+```swift
+// Force light mode
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "running shoes",
+    theme: "light"
+)
+
+// Force dark mode
+GistAdControl(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "smart watch",
+    theme: "dark"
+)
+```
+
+### How It Works
+
+The SDK passes a `pr_theme` parameter to the ad iframe:
+
+- **`"system"`** (default) - Detects device theme with `@Environment(\.colorScheme)` and passes `"light"` or `"dark"` to the iframe
+- **`"light"`** - Forces light mode in the iframe
+- **`"dark"`** - Forces dark mode in the iframe
+
+The iframe content adapts using CSS `color-scheme` and invert filters to match the selected theme.
+
+### Example with Theme Picker
+
+```swift
+struct AdWithThemePicker: View {
+    @State private var selectedTheme = "system"
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Theme picker
+            Picker("Theme", selection: $selectedTheme) {
+                Text("System").tag("system")
+                Text("Light").tag("light")
+                Text("Dark").tag("dark")
+            }
+            .pickerStyle(.segmented)
+            
+            // Ad with selected theme
+            GistAdControl(
+                publisherID: "your-publisher-id",
+                publisherKey: "your-publisher-key",
+                query: "wireless headphones",
+                theme: selectedTheme
+            )
+            .frame(height: 250)
+        }
+        .padding()
+    }
+}
+```
+
+### UIKit / Objective-C Support
+
+```swift
+// Swift
+let adView = GistAdView(
+    publisherID: "your-publisher-id",
+    publisherKey: "your-publisher-key",
+    query: "laptops",
+    theme: .dark  // Use GistAdTheme enum
+)
+```
+
+```objc
+// Objective-C
+GistAdView *adView = [[GistAdView alloc] initWithPublisherID:@"your-publisher-id"
+                                                  publisherKey:@"your-publisher-key"
+                                                         query:@"laptops"
+                                                         theme:GistAdThemeDark];
 ```
 
 ## Configuration

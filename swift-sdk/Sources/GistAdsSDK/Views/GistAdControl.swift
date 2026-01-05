@@ -11,7 +11,7 @@ import SwiftUI
 public struct GistAdControl: View {
     
     /// Environment configuration for API endpoints
-    public enum Environment {
+    public enum APIEnvironment {
         case staging
         case integration
         case production
@@ -36,8 +36,9 @@ public struct GistAdControl: View {
     private let query: String
     private let geo: String
     private let adTypes: [AdType]?
-    private let environment: Environment
+    private let environment: APIEnvironment
     private let apiVersion: String?
+    private let theme: String
     
     // MARK: - Callbacks
     
@@ -57,6 +58,7 @@ public struct GistAdControl: View {
     @State private var adContent: String?
     @State private var isLoading = false
     @State private var error: Error?
+    @Environment(\.colorScheme) var colorScheme: ColorScheme
     
     private let apiService: AdAPIService
     
@@ -74,17 +76,19 @@ public struct GistAdControl: View {
     ///   - onAdLoaded: Optional callback when ad successfully loads
     ///   - onAdClicked: Optional callback when user clicks an ad link (defaults to opening in browser)
     ///   - onContentHeightChanged: Optional callback when ad content height is determined
+    ///   - theme: Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)
     public init(
         publisherID: String,
         publisherKey: String,
         query: String,
         geo: String = "US",
         adTypes: [AdType]? = nil,
-        environment: Environment = .production,
+        environment: APIEnvironment = .production,
         apiVersion: String? = nil,
         onAdLoaded: (() -> Void)? = nil,
         onAdClicked: ((URL) -> Void)? = nil,
-        onContentHeightChanged: ((CGFloat) -> Void)? = nil
+        onContentHeightChanged: ((CGFloat) -> Void)? = nil,
+        theme: String = "system"
     ) {
         self.publisherID = publisherID
         self.publisherKey = publisherKey
@@ -96,6 +100,7 @@ public struct GistAdControl: View {
         self.onAdLoaded = onAdLoaded
         self.onAdClicked = onAdClicked
         self.onContentHeightChanged = onContentHeightChanged
+        self.theme = theme
         
         self.apiService = AdAPIService(
             baseURL: environment.baseURL,
@@ -167,6 +172,16 @@ public struct GistAdControl: View {
     
     // MARK: - Methods
     
+    /// Resolve theme to "light" or "dark" based on preference and system settings
+    private var resolvedTheme: String {
+        switch theme {
+        case "light": return "light"
+        case "dark": return "dark"
+        case "system": return colorScheme == .dark ? "dark" : "light"
+        default: return colorScheme == .dark ? "dark" : "light"
+        }
+    }
+    
     /// Load ad from API
     private func loadAd() async {
         isLoading = true
@@ -176,7 +191,8 @@ public struct GistAdControl: View {
             let content = try await apiService.fetchAd(
                 query: query,
                 geo: geo,
-                adTypes: adTypes
+                adTypes: adTypes,
+                theme: resolvedTheme
             )
             
             await MainActor.run {
@@ -208,11 +224,12 @@ extension GistAdControl {
         query: String,
         geo: String = "US",
         adTypes: [AdType],
-        environment: Environment = .production,
+        environment: APIEnvironment = .production,
         apiVersion: String? = nil,
         onAdLoaded: (() -> Void)? = nil,
         onAdClicked: ((URL) -> Void)? = nil,
-        onContentHeightChanged: ((CGFloat) -> Void)? = nil
+        onContentHeightChanged: ((CGFloat) -> Void)? = nil,
+        theme: String = "system"
     ) -> GistAdControl {
         GistAdControl(
             publisherID: publisherID,
@@ -224,7 +241,8 @@ extension GistAdControl {
             apiVersion: apiVersion,
             onAdLoaded: onAdLoaded,
             onAdClicked: onAdClicked,
-            onContentHeightChanged: onContentHeightChanged
+            onContentHeightChanged: onContentHeightChanged,
+            theme: theme
         )
     }
 }
