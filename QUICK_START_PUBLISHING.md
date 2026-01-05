@@ -124,7 +124,7 @@ Choose one:
 
 ```bash
 # Option 1: Publish to JitPack now (5 minutes)
-git tag -a 1.0.1 -m "Release 1.0.1" && git push origin 1.0.1
+git tag -a 1.0.1 -m "Release 1.0.1 - Enhanced error handling" && git push origin 1.0.1
 
 # Option 2: Start Maven Central setup (2-3 days)
 cd android-sdk && ./scripts/setup-maven-central.sh

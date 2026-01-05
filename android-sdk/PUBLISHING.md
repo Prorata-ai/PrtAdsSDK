@@ -26,7 +26,7 @@ JitPack is the **easiest** option - it builds directly from GitHub with no manua
 
    ```bash
    cd /path/to/PrtAdsSDK
-   git tag -a 1.0.1 -m "Release version 1.0.1 - Add dark mode support"
+   git tag -a 1.0.1 -m "Release version 1.0.1 - Enhanced error handling"
    git push origin 1.0.1
    ```
 
@@ -305,7 +305,7 @@ We use [Semantic Versioning](https://semver.org/):
    ```bash
    git add sdk.gradle.kts
    git commit -m "Release version 1.0.1 - Add dark mode support"
-   git tag -a 1.0.1 -m "Release version 1.0.1 - Add dark mode support"
+   git tag -a 1.0.1 -m "Release version 1.0.1 - Enhanced error handling"
    git push origin main
    git push origin 1.0.1
    ```

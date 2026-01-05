@@ -47,7 +47,7 @@ JitPack builds directly from GitHub, no manual publishing required!
 
    ```kotlin
    dependencies {
-       implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.0")
+       implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.1")
    }
    ```
 
@@ -55,13 +55,13 @@ JitPack builds directly from GitHub, no manual publishing required!
 
 **Version Options:**
 
-- `1.0.0` - Specific release version (recommended)
+- `1.0.1` - Specific release version (recommended)
 - `main-SNAPSHOT` - Latest development version
 - `abc1234` - Specific commit hash
 
 **Notes:**
 
-- Replace `1.0.0` with the desired version tag from [GitHub Releases](https://github.com/Prorata-ai/PrtAdsSDK/releases)
+- Replace `1.0.1` with the desired version tag from [GitHub Releases](https://github.com/Prorata-ai/PrtAdsSDK/releases)
 - JitPack automatically builds the SDK on first request (may take 1-2 minutes)
 - View build status: <https://jitpack.io/#Prorata-ai/PrtAdsSDK>
 
@@ -71,7 +71,7 @@ Once published to Maven Central, installation will be even simpler:
 
 ```kotlin
 dependencies {
-    implementation("com.gist.ads:sdk:1.0.0")
+    implementation("com.gist.ads:sdk:1.0.1")
 }
 ```
 
@@ -759,6 +759,17 @@ See [PUBLISHING.md](PUBLISHING.md) for complete instructions on:
 - **Credentials template**: `gradle.properties.template`
 
 ## Changelog
+
+### Version 1.0.1
+
+- Enhanced error handling with `onError` callback
+- Improved error messages with detailed context
+- Dark mode support with automatic theme detection
+- Manual theme override (light/dark/system)
+- Theme parameter passed to iframe via `pr_theme`
+- Clean build with no deprecation warnings
+- Comprehensive unit tests (40 tests)
+- Bug fixes and stability improvements
 
 ### Version 1.0.0
 
