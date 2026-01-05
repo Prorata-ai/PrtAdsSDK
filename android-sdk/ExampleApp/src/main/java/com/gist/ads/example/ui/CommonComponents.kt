@@ -29,7 +29,7 @@ fun ApiVersionDropdown(
             readOnly = true,
             label = { Text("API Version") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = modifier.fillMaxWidth().menuAnchor()
+            modifier = modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
         )
         
         ExposedDropdownMenu(
@@ -72,7 +72,7 @@ fun QueryDropdown(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = modifier.fillMaxWidth().menuAnchor()
+            modifier = modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
         )
         
         ExposedDropdownMenu(
@@ -113,7 +113,7 @@ fun GeoDropdown(
             readOnly = true,
             label = { Text("Region") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = modifier.fillMaxWidth().menuAnchor()
+            modifier = modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
         )
         
         ExposedDropdownMenu(

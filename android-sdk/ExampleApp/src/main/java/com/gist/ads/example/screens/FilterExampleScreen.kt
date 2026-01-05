@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -52,7 +53,7 @@ fun FilterExampleScreen() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Query selector
         SectionTitle("Query")
@@ -63,7 +64,7 @@ fun FilterExampleScreen() {
             label = "Select query"
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Ad type filters
         SectionTitle("Ad Types")
@@ -118,7 +119,7 @@ fun FilterExampleScreen() {
             }
         }
         
-        Divider()
+        HorizontalDivider()
         
         // Geographic targeting
         SectionTitle("Geographic Targeting")
@@ -128,7 +129,7 @@ fun FilterExampleScreen() {
             onGeoSelected = { selectedGeo = it }
         )
         
-        Divider()
+        HorizontalDivider()
         
         // API Version selector
         SectionTitle("API Version")
@@ -138,7 +139,7 @@ fun FilterExampleScreen() {
             onVersionSelected = { selectedApiVersion = it }
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Ad display
         SectionTitle("Ad Preview")
@@ -186,7 +187,7 @@ fun FilterExampleScreen() {
             }
         }
         
-        Divider()
+        HorizontalDivider()
         
         // Configuration display
         InfoCard(

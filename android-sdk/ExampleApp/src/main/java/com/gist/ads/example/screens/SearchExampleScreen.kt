@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -55,7 +56,7 @@ fun SearchExampleScreen() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Search field
         OutlinedTextField(
@@ -102,7 +103,7 @@ fun SearchExampleScreen() {
             }
         }
         
-        Divider()
+        HorizontalDivider()
         
         // API Version selector
         SectionTitle("API Version")
@@ -112,7 +113,7 @@ fun SearchExampleScreen() {
             onVersionSelected = { selectedApiVersion = it }
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Ad display
         if (debouncedQuery.isNotBlank()) {
@@ -193,7 +194,7 @@ fun SearchExampleScreen() {
             }
         }
         
-        Divider()
+        HorizontalDivider()
         
         // Info
         Card(

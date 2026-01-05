@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -44,7 +45,7 @@ fun BasicExampleScreen() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Query selector
         SectionTitle("Select a query:")
@@ -62,7 +63,7 @@ fun BasicExampleScreen() {
             onVersionSelected = { selectedApiVersion = it }
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Ad display
         SectionTitle("Ad Preview:")
@@ -98,7 +99,7 @@ fun BasicExampleScreen() {
             )
         }
         
-        Divider()
+        HorizontalDivider()
         
         // Info card
         InfoCard(
@@ -111,7 +112,7 @@ fun BasicExampleScreen() {
             )
         )
         
-        Divider()
+        HorizontalDivider()
         
         // Event callbacks card
         InfoCard(

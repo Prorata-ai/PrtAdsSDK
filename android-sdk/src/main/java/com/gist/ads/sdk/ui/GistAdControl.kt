@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
  * @param environment API environment (defaults to production)
  * @param apiVersion API version to use (defaults to v2, or from system property)
  * @param customBaseUrl Optional custom base URL to override environment default
- * @param customIframeUrl Optional custom iframe base URL to override environment default
+ * @param customIframeUrl Optional custom iframe base URL to override environment default (reserved for future use)
  * @param modifier Modifier for styling the ad control
  * @param enableLogging Enable API request/response logging for debugging
  * @param onAdLoaded Optional callback invoked when ad successfully loads
@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
  * @param onError Optional callback invoked when an error occurs during ad loading (provides AdAPIException)
  * @param theme Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun GistAdControl(
     publisherId: String,

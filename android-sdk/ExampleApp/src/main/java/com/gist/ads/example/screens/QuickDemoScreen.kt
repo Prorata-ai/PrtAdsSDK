@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -332,27 +333,27 @@ private fun AdPreviewSection(
             )
             
             if (searchQuery.isNotBlank()) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                ) {
-                    GistAdControl(
-                        publisherId = Config.PUBLISHER_ID,
-                        publisherKey = Config.PUBLISHER_KEY,
-                        query = searchQuery,
-                        geo = selectedGeo,
-                        adTypes = adTypes,
-                        apiVersion = selectedApiVersion,
-                        theme = selectedTheme,
-                        enableLogging = BuildConfig.DEBUG,
+                key(refreshTrigger) {
+                    Card(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .then(Modifier) // Force recomposition on refreshTrigger change
-                    )
+                            .fillMaxWidth()
+                            .height(250.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        GistAdControl(
+                            publisherId = Config.PUBLISHER_ID,
+                            publisherKey = Config.PUBLISHER_KEY,
+                            query = searchQuery,
+                            geo = selectedGeo,
+                            adTypes = adTypes,
+                            apiVersion = selectedApiVersion,
+                            theme = selectedTheme,
+                            enableLogging = BuildConfig.DEBUG,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             } else {
                 EmptyQueryView()
@@ -448,7 +449,7 @@ private fun ExampleQueriesSection(
                             )
                         }
                         Icon(
-                            imageVector = Icons.Default.ArrowForward,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
