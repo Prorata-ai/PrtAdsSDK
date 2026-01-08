@@ -381,7 +381,7 @@ GistAdControl(
 
 ## 📄 License
 
-Copyright © 2024 Gist. All rights reserved.
+Copyright © 2026 Gist. All rights reserved.
 
 See platform-specific LICENSE files for details.
 

@@ -870,7 +870,7 @@ For issues, questions, or feature requests:
 
 ## License
 
-Copyright © 2024 Gist. All rights reserved.
+Copyright © 2026 Gist. All rights reserved.
 
 ## Changelog
 
