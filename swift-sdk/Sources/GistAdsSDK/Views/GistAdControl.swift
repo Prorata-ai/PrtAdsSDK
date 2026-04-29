@@ -123,6 +123,7 @@ public struct GistAdControl: View {
                 AdWebView(
                     htmlContent: adContent,
                     iframeBaseURL: environment.iframeBaseURL,
+                    theme: resolvedTheme,
                     onAdClicked: onAdClicked,
                     onContentHeightChanged: onContentHeightChanged
                 )
@@ -172,14 +173,25 @@ public struct GistAdControl: View {
     
     // MARK: - Methods
     
-    /// Resolve theme to "light" or "dark" based on preference and system settings
+    /// Resolve theme to "light" or "dark" based on preference and system settings.
+    ///
+    /// WORKAROUND: PrtAdsTag's CSS for `data-theme="dark"` sets
+    /// `color-scheme: dark` on `:root` while the wrapper is transparent and
+    /// `.content-container` keeps explicit `color: #000000` for text. This
+    /// produces black text on a dark canvas (invisible) for any non-`gist.ai`
+    /// publisher. Until PrtAdsTag adds proper dark theme support for
+    /// arbitrary publishers, we coerce "dark" to "light" here so the ad
+    /// renders correctly. The surrounding app UI is unaffected — it can
+    /// still be styled dark via SwiftUI's `.preferredColorScheme`.
     private var resolvedTheme: String {
+        let requested: String
         switch theme {
-        case "light": return "light"
-        case "dark": return "dark"
-        case "system": return colorScheme == .dark ? "dark" : "light"
-        default: return colorScheme == .dark ? "dark" : "light"
+        case "light": requested = "light"
+        case "dark": requested = "dark"
+        case "system": requested = colorScheme == .dark ? "dark" : "light"
+        default: requested = colorScheme == .dark ? "dark" : "light"
         }
+        return requested == "dark" ? "light" : requested
     }
     
     /// Load ad from API

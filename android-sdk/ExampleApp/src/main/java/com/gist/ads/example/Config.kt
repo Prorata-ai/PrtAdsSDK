@@ -13,7 +13,7 @@ object Config {
      * Get this from your Gist Ads dashboard
      */
     const val PUBLISHER_ID = "your-publisher-id"
-    
+
     /**
      * Your publisher API key
      * Get this from your Gist Ads dashboard

@@ -58,14 +58,24 @@ fun GistAdControl(
     // Detect system theme
     val isDarkMode = isSystemInDarkTheme()
     
-    // Resolve theme to "light" or "dark"
+    // Resolve theme to "light" or "dark".
+    //
+    // WORKAROUND: PrtAdsTag's CSS for `data-theme="dark"` sets
+    // `color-scheme: dark` on `:root` while the wrapper is transparent and
+    // `.content-container` keeps explicit `color: #000000` for text. This
+    // produces black text on a dark canvas (invisible) for any non-`gist.ai`
+    // publisher. Until PrtAdsTag adds proper dark theme support for
+    // arbitrary publishers, we coerce "dark" to "light" here so the ad
+    // renders correctly. The surrounding app UI is unaffected — it still
+    // follows `isSystemInDarkTheme()` / Material theming.
     val resolvedTheme = remember(theme, isDarkMode) {
-        when (theme) {
+        val requested = when (theme) {
             "light" -> "light"
             "dark" -> "dark"
             "system" -> if (isDarkMode) "dark" else "light"
             else -> if (isDarkMode) "dark" else "light"
         }
+        if (requested == "dark") "light" else requested
     }
     
     // State management
@@ -148,6 +158,7 @@ fun GistAdControl(
                 AdWebView(
                     htmlContent = adContent!!,
                     modifier = Modifier.fillMaxWidth(),
+                    theme = resolvedTheme,
                     onAdClicked = onAdClicked,
                     onContentHeightChanged = onContentHeightChanged
                 )
