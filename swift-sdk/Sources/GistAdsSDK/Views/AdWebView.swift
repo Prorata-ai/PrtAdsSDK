@@ -82,6 +82,33 @@ private func configureWebView(_ webView: WKWebView, isIOS: Bool) {
     webView.configuration.mediaTypesRequiringUserActionForPlayback = []
 }
 
+/// Apply the SDK theme to the WebView so the iframe contents see a matching
+/// `prefers-color-scheme` and the WebView's own background tracks the theme.
+/// Themes: "light", "dark", or "system".
+private func applyThemeToWebView(_ webView: WKWebView, theme: String) {
+    #if os(iOS)
+    if #available(iOS 13.0, *) {
+        switch theme {
+        case "light":
+            webView.overrideUserInterfaceStyle = .light
+        case "dark":
+            webView.overrideUserInterfaceStyle = .dark
+        default:
+            webView.overrideUserInterfaceStyle = .unspecified
+        }
+    }
+    #elseif os(macOS)
+    switch theme {
+    case "light":
+        webView.appearance = NSAppearance(named: .aqua)
+    case "dark":
+        webView.appearance = NSAppearance(named: .darkAqua)
+    default:
+        webView.appearance = nil
+    }
+    #endif
+}
+
 /// Create and configure a new WKWebView with the given delegate
 private func createWebView(delegate: NavigationDelegate?, isIOS: Bool) -> WKWebView {
     let configuration = WKWebViewConfiguration()
@@ -99,6 +126,7 @@ private func updateWebView(
     baseURL: URL,
     onAdClicked: ((URL) -> Void)?,
     onContentHeightChanged: ((CGFloat) -> Void)?,
+    theme: String,
     isIOS: Bool
 ) {
     // Ensure navigation delegate is set
@@ -109,10 +137,16 @@ private func updateWebView(
     // Update callbacks in case they changed
     coordinator.delegate?.onAdClicked = onAdClicked
     coordinator.delegate?.onContentHeightChanged = onContentHeightChanged
-    
-    // Only reload if content has changed
-    if coordinator.lastContent != htmlContent {
+
+    // Apply theme to the WebView. This affects WKWebView's internal
+    // `prefers-color-scheme` media query, which lets iframe content with
+    // `@media (prefers-color-scheme: dark)` rules render correctly.
+    applyThemeToWebView(webView, theme: theme)
+
+    // Reload when either content or theme changed
+    if coordinator.lastContent != htmlContent || coordinator.lastTheme != theme {
         coordinator.lastContent = htmlContent
+        coordinator.lastTheme = theme
         let html = wrappedHTML(content: htmlContent, isIOS: isIOS)
         webView.loadHTMLString(html, baseURL: baseURL)
     }
@@ -123,6 +157,7 @@ private func updateWebView(
 /// Coordinator for AdWebView that holds the navigation delegate and tracks content state
 class AdWebViewCoordinator {
     var lastContent: String?
+    var lastTheme: String?
     fileprivate var delegate: NavigationDelegate?
     
     fileprivate init(onAdClicked: ((URL) -> Void)?, onContentHeightChanged: ((CGFloat) -> Void)?) {
@@ -209,6 +244,7 @@ fileprivate class NavigationDelegate: NSObject, WKNavigationDelegate {
 struct AdWebView: UIViewRepresentable {
     let htmlContent: String
     let iframeBaseURL: String
+    var theme: String = "system"
     var onAdClicked: ((URL) -> Void)?
     var onContentHeightChanged: ((CGFloat) -> Void)?
     
@@ -221,11 +257,13 @@ struct AdWebView: UIViewRepresentable {
     }
     
     func makeUIView(context: Context) -> WKWebView {
-        createWebView(delegate: context.coordinator.delegate, isIOS: true)
+        let webView = createWebView(delegate: context.coordinator.delegate, isIOS: true)
+        applyThemeToWebView(webView, theme: theme)
+        return webView
     }
     
     func updateUIView(_ webView: WKWebView, context: Context) {
-        updateWebView(webView, coordinator: context.coordinator, htmlContent: htmlContent, baseURL: baseURL, onAdClicked: onAdClicked, onContentHeightChanged: onContentHeightChanged, isIOS: true)
+        updateWebView(webView, coordinator: context.coordinator, htmlContent: htmlContent, baseURL: baseURL, onAdClicked: onAdClicked, onContentHeightChanged: onContentHeightChanged, theme: theme, isIOS: true)
     }
 }
 
@@ -235,6 +273,7 @@ struct AdWebView: UIViewRepresentable {
 struct AdWebView: NSViewRepresentable {
     let htmlContent: String
     let iframeBaseURL: String
+    var theme: String = "system"
     var onAdClicked: ((URL) -> Void)?
     var onContentHeightChanged: ((CGFloat) -> Void)?
     
@@ -247,11 +286,13 @@ struct AdWebView: NSViewRepresentable {
     }
     
     func makeNSView(context: Context) -> WKWebView {
-        createWebView(delegate: context.coordinator.delegate, isIOS: false)
+        let webView = createWebView(delegate: context.coordinator.delegate, isIOS: false)
+        applyThemeToWebView(webView, theme: theme)
+        return webView
     }
     
     func updateNSView(_ webView: WKWebView, context: Context) {
-        updateWebView(webView, coordinator: context.coordinator, htmlContent: htmlContent, baseURL: baseURL, onAdClicked: onAdClicked, onContentHeightChanged: onContentHeightChanged, isIOS: false)
+        updateWebView(webView, coordinator: context.coordinator, htmlContent: htmlContent, baseURL: baseURL, onAdClicked: onAdClicked, onContentHeightChanged: onContentHeightChanged, theme: theme, isIOS: false)
     }
 }
 

@@ -20,12 +20,23 @@ struct ContentView: View {
     @State private var selectedApiVersion = APIConstants.apiVersionV2
     @State private var selectedTheme = "system"
     @State private var refreshTrigger = UUID()
+
     
     // Computed property to optimize adTypes conversion
     private var adTypesArray: [AdType]? {
         selectedAdTypes.isEmpty ? nil : Array(selectedAdTypes)
     }
     
+    /// Map the picker selection to a SwiftUI ColorScheme override.
+    /// "system" returns nil so the app follows the device setting.
+    private var preferredColorScheme: ColorScheme? {
+        switch selectedTheme {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -47,6 +58,7 @@ struct ContentView: View {
             .navigationTitle("Prorata Ads Demo")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .preferredColorScheme(preferredColorScheme)
     }
     
     // MARK: - Header Section
@@ -194,7 +206,7 @@ struct ContentView: View {
                     theme: selectedTheme
                 )
                 .frame(height: 250)
-                .background(Color.white)
+                .background(Color(.systemBackground))
                 .cornerRadius(12)
                 .shadow(radius: 2)
                 .id(refreshTrigger)
@@ -219,7 +231,7 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 250)
-        .background(Color.white)
+        .background(Color(.systemBackground))
         .cornerRadius(12)
     }
     
@@ -246,7 +258,7 @@ struct ContentView: View {
                         Image(systemName: "arrow.right")
                     }
                     .padding()
-                    .background(Color.white)
+                    .background(Color(.systemBackground))
                     .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
