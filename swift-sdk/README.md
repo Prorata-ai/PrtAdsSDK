@@ -292,6 +292,170 @@ extension MyViewController: GistAdViewDelegate {
 }
 ```
 
+## Display Ads
+
+In addition to search ads, the SDK supports contextual **display ads** --
+image/text/CTA ads targeted by publisher ID + page URL + size, mirroring the
+web ad tag's `defineSlot({id, url}, slotId, sizes)` -> `displayAd(slotId)`
+flow. Display ads are a separate feature from search ads (`GistAdControl`)
+and use a different control, `GistDisplayAdControl`.
+
+Key differences from search ads:
+
+- **No publisher key required.** Display ads are targeted by publisher ID +
+  page URL only, so `GistDisplayAdControl` doesn't take a `publisherKey`
+  parameter.
+- **Sized, not queried.** Instead of a search `query`, you provide the
+  current page URL and one or more standard IAB ad sizes.
+- **Real no-fill passback.** You can supply your own SwiftUI view to show
+  when no ad is available, instead of a fixed empty state.
+
+### Basic Usage (SwiftUI)
+
+```swift
+import SwiftUI
+import GistAdsSDK
+
+struct ContentView: View {
+    var body: some View {
+        GistDisplayAdControl(
+            publisherID: "your-publisher-id",
+            pageURL: "https://www.example.com/articles/best-hiking-boots",
+            sizes: [.mediumRectangle]
+        )
+        .frame(height: 250)
+    }
+}
+```
+
+### Ad Sizes
+
+`AdSize` provides the standard IAB sizes supported by the display ad server:
+
+| Case | Dimensions |
+|------|------------|
+| `.leaderboard` | 728x90 |
+| `.superLeaderboard` | 970x90 |
+| `.mediumRectangle` | 300x250 |
+| `.mobileBanner` | 320x50 |
+| `.billboard` | 970x250 |
+| `.largeRectangle` | 300x600 |
+| `.skyscraper` | 160x600 |
+| `.dynamic` | fluid layout, no fixed dimensions |
+
+You can pass more than one size to let the server choose the best fit:
+
+```swift
+GistDisplayAdControl(
+    publisherID: "your-publisher-id",
+    pageURL: pageURL,
+    sizes: [.leaderboard, .mediumRectangle]
+)
+```
+
+### Contextual Targeting (`context`)
+
+Display ads are targeted contextually: normally the backend crawls `pageURL`
+to infer relevance, the same way it would for a real webpage. A native
+screen has no crawlable HTML for the backend to analyze that way, so
+`GistDisplayAdControl` accepts an optional `context` dictionary of
+publisher-provided key-value data (category, keywords, section, etc.) that's
+sent alongside `pageURL` to give the backend explicit signal instead:
+
+```swift
+GistDisplayAdControl(
+    publisherID: "your-publisher-id",
+    pageURL: pageURL,
+    sizes: [.mediumRectangle],
+    context: [
+        "category": "technology",
+        "keywords": ["AI", "machine learning"]
+    ]
+)
+```
+
+`context` accepts any JSON-serializable dictionary (`String`, `Int`, `Bool`,
+`Array`, or nested `Dictionary` values). It's optional -- omit it (or leave
+it `nil`) to rely on `pageURL` alone, matching the default behavior.
+
+### No-Fill Passback
+
+When the server has no ad available for a slot, `GistDisplayAdControl` calls
+a `passback` view builder you provide -- mirroring the web tag's
+`definePassbackFunction`, you get full control over the fallback content
+instead of a hard-coded empty state:
+
+```swift
+GistDisplayAdControl(
+    publisherID: "your-publisher-id",
+    pageURL: pageURL,
+    sizes: [.mediumRectangle],
+    passback: {
+        Text("Check out our newsletter instead!")
+            .font(.caption)
+            .foregroundColor(.secondary)
+    }
+)
+```
+
+If you don't provide a `passback`, a minimal built-in "No ad available" view
+is shown instead.
+
+### Callbacks
+
+`GistDisplayAdControl` supports the same `onAdLoaded`, `onAdClicked`, and
+`onContentHeightChanged` callbacks as `GistAdControl`:
+
+```swift
+GistDisplayAdControl(
+    publisherID: "your-publisher-id",
+    pageURL: pageURL,
+    sizes: [.mediumRectangle],
+    onAdLoaded: {
+        print("Display ad loaded")
+    },
+    onAdClicked: { url in
+        print("Display ad clicked: \(url)")
+    },
+    onContentHeightChanged: { height in
+        // Resize your container to match the actual ad content size
+    }
+)
+```
+
+### Environment Configuration
+
+Like `GistAdControl`, `GistDisplayAdControl` supports `.staging`,
+`.integration`, and `.production` environments, each overridable via
+environment variables:
+
+- `GIST_ADS_DISPLAY_STAGING_URL`
+- `GIST_ADS_DISPLAY_INTEGRATION_URL`
+- `GIST_ADS_DISPLAY_PRODUCTION_URL`
+
+```swift
+GistDisplayAdControl(
+    publisherID: "your-publisher-id",
+    pageURL: pageURL,
+    sizes: [.mediumRectangle],
+    environment: .staging
+)
+```
+
+> **Note:** the integration environment currently points at temporary
+> Railway infrastructure rather than the `disp-api.integration.prorata.ai`
+> naming used by staging/production. If this changes, override it with
+> `GIST_ADS_DISPLAY_INTEGRATION_URL` -- no code changes needed.
+
+### How Display Ads Are Rendered
+
+Unlike search ads, the display ad API returns raw ad fields (headline, body
+text, CTA, image URL, click URL) rather than a hosted iframe URL. The SDK
+renders these fields into a minimal, self-contained HTML card via
+`DisplayAdHTMLGenerator` and displays it using the same `AdWebView` used for
+search ads, so click handling, external link interception, and content
+height detection all work the same way.
+
 ## Ad Click Handling
 
 The SDK intercepts clicks on external URLs within ads and provides callbacks so you can handle them appropriately (e.g., open in Safari, in-app browser, or custom handling).
@@ -714,11 +878,12 @@ GistAdControl(...)
 
 The SDK includes a complete example app demonstrating:
 
-- Basic ad integration
+- Basic search ad integration
 - Dynamic query updates
 - Ad type filtering
 - Geographic location selection
 - Error handling
+- Display ad integration with a custom no-fill passback view (see the "Display Ads" tab, presented as a peer to "Search Ads")
 
 To run the example:
 
@@ -819,20 +984,29 @@ The SDK is organized into several components:
 
 ### Models
 
-- `AdType` - Enum for supported ad types
+- `AdType` - Enum for supported ad types (search ads)
 - `SearchRequestV1` - API request model for v1 endpoint
 - `SearchRequestV2` - API request model for v2 endpoint
 - `SearchResponse` - API response model for v2 endpoint
+- `AdSize` - Enum for standard IAB display ad sizes
+- `DisplayAdResponse` / `DisplayAdItem` - API response models for the Display Ad API
 
 ### Services
 
-- `AdAPIService` - Handles API communication
+- `AdAPIService` - Handles search ad API communication
+- `DisplayAdAPIService` - Handles display ad API communication (see the contract notes at the top of that file for endpoint/auth/response details)
 
 ### Views
 
-- `GistAdControl` - Main public SwiftUI view (Swift/SwiftUI projects)
-- `GistAdView` - UIKit UIView wrapper (Objective-C/UIKit projects)
-- `AdWebView` - Internal WebKit wrapper for rendering
+- `GistAdControl` - Main public SwiftUI view for search ads (Swift/SwiftUI projects)
+- `GistDisplayAdControl` - Main public SwiftUI view for display ads (Swift/SwiftUI projects)
+- `GistAdView` - UIKit UIView wrapper for search ads (Objective-C/UIKit projects)
+- `AdWebView` - Internal WebKit wrapper for rendering, shared by both search and display ads
+
+### Utils
+
+- `IframeHTMLGenerator` - Builds iframe HTML for search ads
+- `DisplayAdHTMLGenerator` - Builds minimal raw-field HTML for display ads
 
 ## Best Practices
 
@@ -873,6 +1047,21 @@ For issues, questions, or feature requests:
 Copyright © 2026 Gist. All rights reserved.
 
 ## Changelog
+
+### Version 1.0.3
+
+- Added `GistDisplayAdControl` for contextual display ads (`defineSlot`/`displayAd` pattern), with standard IAB ad sizes and no-fill passback support
+- Added first-party `context` parameter to `GistDisplayAdControl` for passing publisher-provided targeting data to the Display Ad API
+
+### Version 1.0.2
+
+- Added system modes for ad display
+- Improved documentation
+
+### Version 1.0.1
+
+- Added ad click handling, content height detection, and ad loaded callbacks to both UIKit (`GistAdView`) and SwiftUI (`GistAdControl`) components
+- Refactored to reduce code duplication
 
 ### Version 1.0.0
 

@@ -180,7 +180,7 @@ fileprivate class NavigationDelegate: NSObject, WKNavigationDelegate {
             decisionHandler(.allow)
             return
         }
-        
+
         // Allow navigation for non-http schemes (about:blank, etc.)
         let scheme = url.scheme?.lowercased() ?? ""
         if scheme != "http" && scheme != "https" {

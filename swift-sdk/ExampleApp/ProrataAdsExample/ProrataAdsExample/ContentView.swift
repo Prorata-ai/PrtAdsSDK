@@ -12,7 +12,7 @@ struct ContentView: View {
     // Configuration - Replace with your actual credentials
     private let publisherID = "your-publisher-id"
     private let publisherKey = "your-publisher-key"
-    
+
     // State for dynamic queries
     @State private var searchQuery = "best wireless headphones"
     @State private var selectedGeo = "US"
@@ -55,7 +55,7 @@ struct ContentView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Prorata Ads Demo")
+            .navigationTitle("Search Ads")
             .navigationBarTitleDisplayMode(.inline)
         }
         .preferredColorScheme(preferredColorScheme)

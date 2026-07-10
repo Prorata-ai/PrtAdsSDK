@@ -21,14 +21,33 @@ public enum APIConstants {
     static let integrationIframeBaseURL = "https://tp-at.integration.prorata.ai"
     static let productionIframeBaseURL = "https://tp-at.prorata.ai"
     
-    /// Allowed ad server domains for URL filtering (used in click handling)
-    /// Derived from iframe base URLs, including any environment variable overrides
+    /// Allowed ad server domains for URL filtering (used in click handling).
+    /// Derived from iframe base URLs, including any environment variable
+    /// overrides, PLUS the Display Ad API's own base domains.
+    ///
+    /// The Display Ad API domains are included here because `AdWebView` is
+    /// shared between search ads (rendered via `<iframe src="...">`) and
+    /// display ads (rendered via `webView.loadHTMLString(_:baseURL:)`).
+    /// `loadHTMLString(_:baseURL:)` itself triggers exactly one synthetic
+    /// `decidePolicyForNavigationAction` call with `url == baseURL` (not a
+    /// real network request -- WebKit reports the load's origin-setup this
+    /// way). If that base host isn't allowlisted, this delegate cancels its
+    /// own page load and immediately kicks the user out to Safari with the
+    /// bare base URL, on every single ad load, with no tap required. Adding
+    /// these domains here fixes that for display ads while remaining a
+    /// no-op for search ads (which never navigate to these hosts anyway).
     static var allowedAdDomains: [String] {
-        let staticDomains = [stagingIframeBaseURL, integrationIframeBaseURL, productionIframeBaseURL]
+        let staticDomains = [
+            stagingIframeBaseURL, integrationIframeBaseURL, productionIframeBaseURL,
+            DisplayAPIConstants.stagingBaseURL, DisplayAPIConstants.integrationBaseURL, DisplayAPIConstants.productionBaseURL
+        ]
         let dynamicDomains = [
             iframeBaseURL(for: .staging),
             iframeBaseURL(for: .integration),
-            iframeBaseURL(for: .production)
+            iframeBaseURL(for: .production),
+            DisplayAPIConstants.baseURL(for: .staging),
+            DisplayAPIConstants.baseURL(for: .integration),
+            DisplayAPIConstants.baseURL(for: .production)
         ]
         return Array(Set(staticDomains + dynamicDomains))
             .compactMap { URL(string: $0)?.host }
@@ -104,6 +123,46 @@ public enum APIConstants {
         }
         
         // Check environment variable first, fall back to constant
+        return ProcessInfo.processInfo.environment[envKey] ?? defaultValue
+    }
+}
+
+/// API-related constants for the Display Ad API (`/decision`).
+///
+/// The display API lives on a separate host from the search API -- see the
+/// contract notes at the top of `DisplayAdAPIService.swift` for how these
+/// were discovered.
+public enum DisplayAPIConstants {
+    static let decisionEndpoint = "/decision"
+
+    // Environment-specific base URLs (can be overridden via environment variables)
+    static let stagingBaseURL = "https://disp-api.staging.prorata.ai"
+    // NOTE: Integration currently points at temporary Railway infra rather
+    // than the `disp-api.integration.prorata.ai` pattern used by staging and
+    // production. This is expected to change -- override via
+    // GIST_ADS_DISPLAY_INTEGRATION_URL if/when it migrates.
+    static let integrationBaseURL = "https://prtadsdisplayapi-integration.up.railway.app"
+    static let productionBaseURL = "https://disp-api.prorata.ai"
+
+    /// Get base URL for environment, checking environment variables first
+    /// - Parameter environment: The environment to get the base URL for
+    /// - Returns: Base URL from environment variable if set, otherwise the default constant
+    static func baseURL(for environment: GistDisplayAdControl.APIEnvironment) -> String {
+        let envKey: String
+        let defaultValue: String
+
+        switch environment {
+        case .staging:
+            envKey = "GIST_ADS_DISPLAY_STAGING_URL"
+            defaultValue = stagingBaseURL
+        case .integration:
+            envKey = "GIST_ADS_DISPLAY_INTEGRATION_URL"
+            defaultValue = integrationBaseURL
+        case .production:
+            envKey = "GIST_ADS_DISPLAY_PRODUCTION_URL"
+            defaultValue = productionBaseURL
+        }
+
         return ProcessInfo.processInfo.environment[envKey] ?? defaultValue
     }
 }

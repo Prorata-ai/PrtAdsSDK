@@ -76,6 +76,33 @@ struct SearchView: View {
 }
 ```
 
+### Display Ad with First-Party Context
+
+Unlike search ads, display ads (`GistDisplayAdControl`) are targeted contextually via `pageURL` -- the backend normally crawls that URL to infer relevance, the way it would for a real webpage. A native screen has no crawlable HTML for the backend to analyze that way, so pass `context` (arbitrary JSON-serializable publisher first-party data -- mirrors the web tag's `slot.define1PData()`) to hand over that signal explicitly instead:
+
+```swift
+import SwiftUI
+import GistAdsSDK
+
+struct ArticleWithDisplayAd: View {
+    var body: some View {
+        VStack {
+            Text("Article content...")
+
+            GistDisplayAdControl(
+                publisherID: "pub-12345",
+                pageURL: "https://example.com/articles/ai-trends",
+                sizes: [.mediumRectangle],
+                context: ["category": "technology"]
+            )
+            .frame(height: 250)
+        }
+    }
+}
+```
+
+`context` accepts any JSON-serializable dictionary (`String`, `Int`, `Bool`, `Array`, or nested `Dictionary` values), e.g. `["category": "technology", "keywords": ["AI", "machine learning"]]`. It's optional -- omit it (or leave it `nil`) to rely on `pageURL` alone.
+
 ---
 
 ## Theme Support

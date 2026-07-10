@@ -277,7 +277,7 @@ final class GistAdsSDKTests: XCTestCase {
     }
     
     func testSDKVersion() {
-        XCTAssertEqual(GistAdsSDK.version, "1.0.1")
+        XCTAssertEqual(GistAdsSDK.version, "1.0.3")
         XCTAssertEqual(GistAdsSDK.name, "GistAdsSDK")
     }
     
