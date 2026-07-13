@@ -14,6 +14,7 @@ A native Android SDK for integrating Gist AI Search Ads into your Android applic
 - 🌍 **Multi-Environment** - Staging, Integration, and Production environments
 - 📢 **Event Callbacks** - Track ad loads, clicks, and content height changes
 - 🎯 **Three Ad Types** - Image, Text/Image, and Text ads
+- 🖼️ **Display Ads** - Contextual display ads targeted by publisher ID + page URL + size, with first-party context targeting for native screens
 
 ## Installation
 
@@ -47,7 +48,7 @@ JitPack builds directly from GitHub, no manual publishing required!
 
    ```kotlin
    dependencies {
-       implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.1")
+       implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.2")
    }
    ```
 
@@ -55,13 +56,13 @@ JitPack builds directly from GitHub, no manual publishing required!
 
 **Version Options:**
 
-- `1.0.1` - Specific release version (recommended)
+- `1.0.2` - Specific release version (recommended)
 - `main-SNAPSHOT` - Latest development version
 - `abc1234` - Specific commit hash
 
 **Notes:**
 
-- Replace `1.0.1` with the desired version tag from [GitHub Releases](https://github.com/Prorata-ai/PrtAdsSDK/releases)
+- Replace `1.0.2` with the desired version tag from [GitHub Releases](https://github.com/Prorata-ai/PrtAdsSDK/releases)
 - JitPack automatically builds the SDK on first request (may take 1-2 minutes)
 - View build status: <https://jitpack.io/#Prorata-ai/PrtAdsSDK>
 
@@ -71,7 +72,7 @@ Once published to Maven Central, installation will be even simpler:
 
 ```kotlin
 dependencies {
-    implementation("com.gist.ads:sdk:1.0.1")
+    implementation("com.gist.ads:sdk:1.0.2")
 }
 ```
 
@@ -218,6 +219,89 @@ GistAdControl(..., adTypes = listOf(AdType.IMAGE, AdType.TEXT_IMAGE))
 // All three types explicitly
 GistAdControl(..., adTypes = listOf(AdType.IMAGE, AdType.TEXT_IMAGE, AdType.TEXT))
 ```
+
+## Display Ads
+
+`GistDisplayAdControl` renders contextual display ads targeted by publisher ID + page URL + size, mirroring the web tag's `defineSlot({id, url}, slotId, sizes)` -> `displayAd(slotId)` flow. Unlike `GistAdControl` (search ads, gated by a secret publisher key), display ads only require a publisher ID -- no publisher key is needed.
+
+```kotlin
+import com.gist.ads.sdk.ui.GistDisplayAdControl
+import com.gist.ads.sdk.models.AdSize
+
+GistDisplayAdControl(
+    publisherId = "pub-12345",
+    pageUrl = "https://example.com/articles/ai-trends",
+    sizes = listOf(AdSize.MEDIUM_RECTANGLE),
+    modifier = Modifier.fillMaxWidth().height(250.dp)
+)
+```
+
+### Required Parameters (Display Ads)
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `publisherId` | `String` | Your publisher ID credential (no publisher key required) |
+| `pageUrl` | `String` | The current page/context URL to target the ad against (mirrors `url` in `defineSlot`) |
+| `sizes` | `List<AdSize>` | One or more supported ad sizes (mirrors `sizes` in `defineSlot`) |
+
+### Optional Parameters (Display Ads)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `environment` | `DisplayAPIConstants.Environment` | `PRODUCTION` | API environment (STAGING, INTEGRATION, PRODUCTION) |
+| `theme` | `String` | `"system"` | Theme preference - "light", "dark", or "system" |
+| `context` | `Map<String, Any>?` | `null` | Publisher-provided key-value data for LLM context -- see [Contextual Targeting](#contextual-targeting) below |
+| `modifier` | `Modifier` | `Modifier` | Compose modifier for styling |
+| `onAdLoaded` | `(() -> Unit)?` | `null` | Callback when ad successfully loads |
+| `onAdClicked` | `((String) -> Unit)?` | `null` | Callback when user clicks ad (if null, opens in browser) |
+| `onContentHeightChanged` | `((Float) -> Unit)?` | `null` | Callback when ad content height changes |
+| `passback` | `(@Composable () -> Unit)?` | `null` | Composable shown when no ad is available (no-fill), mirroring the web tag's `definePassbackFunction`. Defaults to a simple "No ad available" text when not provided |
+
+### Ad Sizes
+
+`AdSize` mirrors the standard IAB sizes documented for the web ad tag's `defineSlot`:
+
+- `AdSize.LEADERBOARD` (728x90)
+- `AdSize.SUPER_LEADERBOARD` (970x90)
+- `AdSize.MEDIUM_RECTANGLE` (300x250)
+- `AdSize.MOBILE_BANNER` (320x50)
+- `AdSize.BILLBOARD` (970x250)
+- `AdSize.LARGE_RECTANGLE` (300x600)
+- `AdSize.SKYSCRAPER` (160x600)
+- `AdSize.DYNAMIC` (fluid layout)
+
+### No-Fill Passback
+
+When the server has no ad to serve, `GistDisplayAdControl` shows the `passback` composable instead, giving you full control over the fallback UI:
+
+```kotlin
+GistDisplayAdControl(
+    publisherId = "pub-12345",
+    pageUrl = "https://example.com/articles/ai-trends",
+    sizes = listOf(AdSize.MEDIUM_RECTANGLE),
+    passback = {
+        Text("Check out our newsletter instead!")
+    }
+)
+```
+
+### Contextual Targeting
+
+`pageUrl` alone works well for a real webpage, which the backend can crawl to infer relevance. A native screen has no crawlable HTML, so `context` is the way to hand over that signal explicitly instead:
+
+```kotlin
+GistDisplayAdControl(
+    publisherId = "pub-12345",
+    pageUrl = "https://example.com/articles/ai-trends",
+    sizes = listOf(AdSize.MEDIUM_RECTANGLE),
+    context = mapOf(
+        "category" to "technology",
+        "keywords" to listOf("AI", "machine learning")
+    )
+)
+```
+
+`context` accepts any JSON-serializable map (`String`, `Number`, `Boolean`, `List`, or nested `Map` values). It's optional -- omit it (or leave it `null`) to rely on `pageUrl` alone.
 
 ## API Versioning
 
@@ -559,21 +643,29 @@ The SDK is organized into several components:
 - `AdType` - Enum for supported ad types (IMAGE, TEXT_IMAGE, TEXT)
 - `SearchRequest` - API request models (V1 and V2 variants)
 - `SearchResponse` - API response model
+- `AdSize` - Enum for supported display ad sizes (leaderboard, medium rectangle, dynamic, etc.)
+- `DisplayAdResponse` / `DisplayAdItem` - Display Ad API response models (handles both flat and `selection`-wrapped shapes)
+- `DisplayAdLoadState` - Pure state-derivation logic for `GistDisplayAdControl`, kept Compose-independent for unit testability
 
 ### Services
 
-- `AdAPIService` - Handles API communication with OkHttp
-- `AdAPIException` - Error types for API operations
+- `AdAPIService` - Handles search ad API communication with OkHttp
+- `AdAPIException` - Error types for search ad API operations
+- `DisplayAdAPIService` - Handles display ad API communication with OkHttp
+- `DisplayAdAPIException` - Error types for display ad API operations
 
 ### UI Components
 
-- `GistAdControl` - Main public Composable
-- `AdWebView` - Internal WebView wrapper for rendering
+- `GistAdControl` - Main public Composable for search ads
+- `GistDisplayAdControl` - Main public Composable for display ads
+- `AdWebView` - Internal WebView wrapper for rendering (shared by both)
 
 ### Utilities
 
-- `IframeHTMLGenerator` - Generates HTML for ad iframes
-- `APIConstants` - Centralized API configuration
+- `IframeHTMLGenerator` - Generates HTML for search ad iframes
+- `DisplayAdHTMLGenerator` - Generates HTML for display ads from raw ad fields
+- `APIConstants` - Centralized search API configuration
+- `DisplayAPIConstants` - Centralized display API configuration
 
 ## Permissions
 
@@ -721,7 +813,13 @@ See the [ExampleApp](ExampleApp/) directory for the full implementation.
 - Geographic region selector
 - Live configuration preview
 
-#### 4. Settings Screen
+#### 4. Display Ads Screen
+
+- Page URL input (with contextual targeting via `context`)
+- Ad size dropdown and environment picker
+- Custom no-fill passback view
+
+#### 5. Settings Screen
 
 - SDK version information
 - API configuration display
@@ -759,6 +857,11 @@ See [PUBLISHING.md](PUBLISHING.md) for complete instructions on:
 - **Credentials template**: `gradle.properties.template`
 
 ## Changelog
+
+### Version 1.0.2
+
+- Added `GistDisplayAdControl` for contextual display ads (`defineSlot`/`displayAd` pattern), with standard IAB ad sizes and no-fill passback support
+- Added first-party `context` parameter to `GistDisplayAdControl` for passing publisher-provided targeting data to the Display Ad API
 
 ### Version 1.0.1
 

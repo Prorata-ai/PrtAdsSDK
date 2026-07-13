@@ -76,3 +76,45 @@ object APIConstants {
      */
     fun searchEndpoint(version: String): String = "/$version/search"
 }
+
+/**
+ * API-related constants for the Display Ad API (`/decision`).
+ *
+ * The display API lives on a separate host from the search API -- see the
+ * contract notes at the top of `DisplayAdAPIService.kt` for how these were
+ * discovered. Matches the Swift SDK's `DisplayAPIConstants`.
+ */
+object DisplayAPIConstants {
+    const val DECISION_ENDPOINT = "/decision"
+
+    private const val STAGING_BASE_URL = "https://disp-api.staging.prorata.ai"
+
+    // NOTE: Integration currently points at temporary Railway infra rather
+    // than the `disp-api.integration.prorata.ai` pattern used by staging and
+    // production. This is expected to change -- override via the
+    // gist.ads.display.integration.url system property if/when it migrates.
+    private const val INTEGRATION_BASE_URL = "https://prtadsdisplayapi-integration.up.railway.app"
+    private const val PRODUCTION_BASE_URL = "https://disp-api.prorata.ai"
+
+    /**
+     * Environment configuration with override support.
+     * URLs can be overridden via system properties:
+     * - gist.ads.display.staging.url
+     * - gist.ads.display.integration.url
+     * - gist.ads.display.production.url
+     */
+    enum class Environment(
+        private val defaultBaseUrl: String,
+        private val baseUrlProperty: String
+    ) {
+        STAGING(STAGING_BASE_URL, "gist.ads.display.staging.url"),
+        INTEGRATION(INTEGRATION_BASE_URL, "gist.ads.display.integration.url"),
+        PRODUCTION(PRODUCTION_BASE_URL, "gist.ads.display.production.url");
+
+        /**
+         * Get base URL, checking system property first then falling back to default
+         */
+        val baseUrl: String
+            get() = System.getProperty(baseUrlProperty) ?: defaultBaseUrl
+    }
+}

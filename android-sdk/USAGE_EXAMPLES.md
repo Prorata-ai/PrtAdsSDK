@@ -5,16 +5,17 @@ Comprehensive examples for using the Gist Ads SDK in your Android application.
 ## Table of Contents
 
 1. [Basic Usage](#basic-usage)
-2. [API Versioning](#api-versioning)
-3. [Event Callbacks](#event-callbacks)
-4. [Theme Support](#theme-support)
-5. [Dynamic Search Integration](#dynamic-search-integration)
-6. [Ad Type Filtering](#ad-type-filtering)
-7. [Geographic Targeting](#geographic-targeting)
-8. [Custom Styling](#custom-styling)
-9. [Advanced Patterns](#advanced-patterns)
-10. [Error Handling](#error-handling)
-11. [Performance Optimization](#performance-optimization)
+2. [Display Ads](#display-ads)
+3. [API Versioning](#api-versioning)
+4. [Event Callbacks](#event-callbacks)
+5. [Theme Support](#theme-support)
+6. [Dynamic Search Integration](#dynamic-search-integration)
+7. [Ad Type Filtering](#ad-type-filtering)
+8. [Geographic Targeting](#geographic-targeting)
+9. [Custom Styling](#custom-styling)
+10. [Advanced Patterns](#advanced-patterns)
+11. [Error Handling](#error-handling)
+12. [Performance Optimization](#performance-optimization)
 
 ---
 
@@ -68,6 +69,59 @@ fun CardAdExample() {
             query = "smart watches"
         )
     }
+}
+```
+
+---
+
+## Display Ads
+
+### Display Ad with First-Party Context
+
+Unlike search ads, display ads (`GistDisplayAdControl`) are targeted contextually via `pageUrl` -- the backend normally crawls that URL to infer relevance, the way it would for a real webpage. A native screen has no crawlable HTML for the backend to analyze that way, so pass `context` (arbitrary JSON-serializable publisher first-party data -- mirrors the web tag's `slot.define1PData()`) to hand over that signal explicitly instead:
+
+```kotlin
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.gist.ads.sdk.models.AdSize
+import com.gist.ads.sdk.ui.GistDisplayAdControl
+
+@Composable
+fun ArticleWithDisplayAd() {
+    Column {
+        Text("Article content...")
+
+        GistDisplayAdControl(
+            publisherId = "pub-12345",
+            pageUrl = "https://example.com/articles/ai-trends",
+            sizes = listOf(AdSize.MEDIUM_RECTANGLE),
+            context = mapOf("category" to "technology"),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+        )
+    }
+}
+```
+
+`context` accepts any JSON-serializable map (`String`, `Number`, `Boolean`, `List`, or nested `Map` values), e.g. `mapOf("category" to "technology", "keywords" to listOf("AI", "machine learning"))`. It's optional -- omit it (or leave it `null`) to rely on `pageUrl` alone.
+
+### Display Ad with Custom No-Fill Passback
+
+```kotlin
+@Composable
+fun DisplayAdWithPassbackExample() {
+    GistDisplayAdControl(
+        publisherId = "pub-12345",
+        pageUrl = "https://example.com/articles/ai-trends",
+        sizes = listOf(AdSize.MEDIUM_RECTANGLE),
+        passback = {
+            Text("Check out our newsletter instead!")
+        }
+    )
 }
 ```
 

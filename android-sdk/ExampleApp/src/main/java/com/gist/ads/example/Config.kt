@@ -19,6 +19,12 @@ object Config {
      * Get this from your Gist Ads dashboard
      */
     const val PUBLISHER_KEY = "your-publisher-key"
+
+    /**
+     * Your publisher ID for display ads.
+     * Unlike search ads, display ads don't require a publisher key.
+     */
+    const val DISPLAY_PUBLISHER_ID = "your-publisher-id"
     
     /**
      * Default geographic location
