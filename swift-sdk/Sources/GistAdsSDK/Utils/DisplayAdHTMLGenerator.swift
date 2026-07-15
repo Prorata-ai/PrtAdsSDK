@@ -28,7 +28,10 @@ enum DisplayAdHTMLGenerator {
     /// - Returns: HTML string suitable for passing to `AdWebView`.
     static func generate(ad: DisplayAdItem, theme: String) -> String {
         let clickURL = ad.adUrl?.htmlAttributeEscaped ?? "#"
-        let headline = (ad.adHeadline ?? ad.adName ?? "").htmlEscaped
+        // Used both as `alt="..."` (an attribute) and as inline text content below,
+        // so it needs attribute-level escaping (quotes too) to avoid breaking the
+        // `alt` attribute boundary on a headline containing a `"`.
+        let headline = (ad.adHeadline ?? ad.adName ?? "").htmlAttributeEscaped
         let bodyText = ad.adText?.htmlEscaped
         let cta = ad.adCta?.htmlEscaped
         let brandName = ad.adName?.htmlEscaped

@@ -93,6 +93,44 @@ final class GistDisplayAdControlTests: XCTestCase {
         XCTAssertNotNil(control)
     }
 
+    // MARK: - loadKey (drives .task(id:) reload behavior)
+
+    func testLoadKeyChangesWhenPageURLChanges() {
+        let control1 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle])
+        let control2 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/b", sizes: [.mediumRectangle])
+        XCTAssertNotEqual(control1.loadKey, control2.loadKey)
+    }
+
+    func testLoadKeyChangesWhenSizesChange() {
+        let control1 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle])
+        let control2 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.leaderboard])
+        XCTAssertNotEqual(control1.loadKey, control2.loadKey)
+    }
+
+    func testLoadKeyChangesWhenEnvironmentChanges() {
+        let control1 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], environment: .staging)
+        let control2 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], environment: .production)
+        XCTAssertNotEqual(control1.loadKey, control2.loadKey)
+    }
+
+    func testLoadKeyChangesWhenContextChanges() {
+        let control1 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], context: ["category": "sports"])
+        let control2 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], context: ["category": "tech"])
+        XCTAssertNotEqual(control1.loadKey, control2.loadKey)
+    }
+
+    func testLoadKeyIsStableForEquivalentContextRegardlessOfKeyOrder() {
+        let control1 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], context: ["category": "sports", "keywords": "nfl"])
+        let control2 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], context: ["keywords": "nfl", "category": "sports"])
+        XCTAssertEqual(control1.loadKey, control2.loadKey)
+    }
+
+    func testLoadKeyIsStableWhenNothingChanges() {
+        let control1 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle, .leaderboard])
+        let control2 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle, .leaderboard])
+        XCTAssertEqual(control1.loadKey, control2.loadKey)
+    }
+
     // MARK: - DisplayAPIConstants
 
     func testDisplayAPIConstantsDefaultBaseURLs() {

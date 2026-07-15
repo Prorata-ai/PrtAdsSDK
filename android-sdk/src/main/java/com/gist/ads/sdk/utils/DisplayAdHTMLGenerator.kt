@@ -27,7 +27,10 @@ object DisplayAdHTMLGenerator {
      */
     fun generate(ad: DisplayAdItem, theme: String): String {
         val clickUrl = ad.adUrl?.htmlAttributeEscaped() ?: "#"
-        val headline = (ad.adHeadline ?: ad.adName ?: "").htmlEscaped()
+        // Used both as `alt="..."` (an attribute) and as inline text content below,
+        // so it needs attribute-level escaping (quotes too) to avoid breaking the
+        // `alt` attribute boundary on a headline containing a `"`.
+        val headline = (ad.adHeadline ?: ad.adName ?: "").htmlAttributeEscaped()
         val bodyText = ad.adText?.htmlEscaped()
         val cta = ad.adCta?.htmlEscaped()
         val brandName = ad.adName?.htmlEscaped()

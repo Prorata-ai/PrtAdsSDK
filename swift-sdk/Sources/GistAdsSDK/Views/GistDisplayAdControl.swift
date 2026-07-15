@@ -182,7 +182,7 @@ public struct GistDisplayAdControl: View {
                 passback()
             }
         }
-        .task {
+        .task(id: loadKey) {
             await loadAd()
         }
     }
@@ -224,6 +224,29 @@ public struct GistDisplayAdControl: View {
         case "system": return colorScheme == .dark ? "dark" : "light"
         default: return colorScheme == .dark ? "dark" : "light"
         }
+    }
+
+    /// Identity key for `.task(id:)`, capturing every parameter that should
+    /// trigger a reload. SwiftUI recreates this struct with new parameter
+    /// values whenever a caller updates them (e.g. `pageURL` for a new
+    /// article in a scrolling feed), but `.task` alone only fires once for
+    /// the view's lifetime -- it needs an explicit `id` to react to those
+    /// changes. `context: [String: Any]?` isn't `Hashable`, so this encodes
+    /// it deterministically (`.sortedKeys`) into the key string instead.
+    var loadKey: String {
+        let contextKey: String
+        if let context, let data = try? JSONSerialization.data(withJSONObject: context, options: [.sortedKeys]) {
+            contextKey = String(data: data, encoding: .utf8) ?? ""
+        } else {
+            contextKey = ""
+        }
+        return [
+            pageURL,
+            sizes.map(\.displayName).joined(separator: ","),
+            String(describing: environment),
+            resolvedTheme,
+            contextKey
+        ].joined(separator: "|")
     }
 
     /// Load ad from the Display Ad API
