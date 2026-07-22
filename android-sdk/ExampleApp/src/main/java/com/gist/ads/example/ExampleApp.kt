@@ -93,6 +93,20 @@ fun ExampleApp() {
                     }
                 )
                 NavigationBarItem(
+                    icon = { Icon(Icons.Filled.PhotoLibrary, contentDescription = "Display Ads") },
+                    label = { Text("Display") },
+                    selected = currentDestination?.hierarchy?.any { it.route == "display" } == true,
+                    onClick = {
+                        navController.navigate("display") {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+                NavigationBarItem(
                     icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
                     label = { Text("Settings") },
                     selected = currentDestination?.hierarchy?.any { it.route == "settings" } == true,
@@ -118,6 +132,7 @@ fun ExampleApp() {
             composable("basic") { BasicExampleScreen() }
             composable("search") { SearchExampleScreen() }
             composable("filters") { FilterExampleScreen() }
+            composable("display") { DisplayAdDemoScreen() }
             composable("settings") { SettingsScreen() }
         }
     }

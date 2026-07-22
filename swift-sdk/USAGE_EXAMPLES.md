@@ -44,6 +44,27 @@ struct ProductView: View {
 }
 ```
 
+### Search Ads with Sizes and No-Fill Passback
+
+Like display ads, search ads are rendered by embedding `adtag.js` directly,
+so they need an explicit `sizes` list (defaults to `[.dynamic]`) and support
+a custom `passback` view for when no ad is available:
+
+```swift
+GistAdControl(
+    publisherID: "pub-12345",
+    publisherKey: "key-67890",
+    query: "wireless headphones",
+    sizes: [.mediumRectangle, .leaderboard],
+    passback: {
+        Text("Check out our newsletter instead!")
+            .font(.caption)
+            .foregroundColor(.secondary)
+    }
+)
+.frame(height: 250)
+```
+
 ### Dynamic Search-Based Ads
 
 ```swift
@@ -71,6 +92,30 @@ struct SearchView: View {
                 .padding()
                 .id(searchQuery) // Refresh when query changes
             }
+        }
+    }
+}
+```
+
+### Display Ad in an Article
+
+Display ads (`GistDisplayAdControl`) are targeted by publisher ID + page URL + size, mirroring the web tag's `defineSlot({id, url}, slotId, sizes)` -> `displayAd(slotId)` flow. The backend crawls `pageURL` to infer relevance, the same way it would for a real webpage. See "How Display Ads Are Rendered" in the README for how this control embeds the real `adtag.js` script rather than calling any API itself:
+
+```swift
+import SwiftUI
+import GistAdsSDK
+
+struct ArticleWithDisplayAd: View {
+    var body: some View {
+        VStack {
+            Text("Article content...")
+
+            GistDisplayAdControl(
+                publisherID: "pub-12345",
+                pageURL: "https://example.com/articles/ai-trends",
+                sizes: [.mediumRectangle]
+            )
+            .frame(height: 250)
         }
     }
 }
@@ -333,44 +378,9 @@ struct AdView: View {
 }
 ```
 
-### Overriding Base URLs with Environment Variables
-
-You can override the default base URLs for any environment using environment variables:
-
-**Setting in Xcode:**
-
-1. Product → Scheme → Edit Scheme...
-2. Run → Arguments → Environment Variables
-3. Add:
-
-   - `GIST_ADS_PRODUCTION_URL` = `https://custom-api.example.com`
-   - `GIST_ADS_STAGING_URL` = `https://custom-staging.example.com`
-   - `GIST_ADS_INTEGRATION_URL` = `https://custom-integration.example.com`
-
-**Setting via Terminal:**
-
-```bash
-export GIST_ADS_PRODUCTION_URL="https://custom-api.example.com"
-# Then run your app
-```
-
-**Example: Testing with Local Server**
-
-```swift
-// Set GIST_ADS_STAGING_URL="http://localhost:8080" in Xcode scheme
-GistAdControl(
-    publisherID: Config.publisherID,
-    publisherKey: Config.publisherKey,
-    query: "test query",
-    environment: .staging  // Will use http://localhost:8080 if env var is set
-)
-```
-
-**Note:** Environment variables take precedence over default URLs. If not set, the SDK uses the default URLs defined internally.
-
 ### Overriding Iframe Base URLs with Environment Variables
 
-You can override the default iframe base URLs for any environment using environment variables. This is useful for testing against staging/integration ad tag servers. The iframe base URL automatically matches the `GistAdControl` environment setting.
+You can override the `adtag.js` script host for any environment using environment variables. This is useful for testing against staging/integration ad tag servers. This URL is shared by both search and display ads (`adtag.js` is one bundle serving both) and automatically matches the `environment` setting on `GistAdControl` / `GistDisplayAdControl`.
 
 **Default Iframe Base URLs:**
 
@@ -408,54 +418,6 @@ GistAdControl(
 ```
 
 **Note:** Environment variables take precedence over default iframe base URLs. If not set, the SDK uses the default iframe base URLs defined internally for each environment.
-
-### API Version Configuration
-
-The SDK supports both v1 and v2 API endpoints. By default, v2 is used. You can switch versions using the `GIST_ADS_API_VERSION` environment variable.
-
-**Using v1 Endpoint:**
-
-```swift
-// Set GIST_ADS_API_VERSION="v1" in Xcode scheme or terminal
-GistAdControl(
-    publisherID: Config.publisherID,
-    publisherKey: Config.publisherKey,
-    query: "wireless headphones"
-)
-// v1 returns raw HTML directly
-```
-
-**Using v2 Endpoint (Default):**
-
-```swift
-// Set GIST_ADS_API_VERSION="v2" in Xcode scheme or terminal (or omit for default)
-GistAdControl(
-    publisherID: Config.publisherID,
-    publisherKey: Config.publisherKey,
-    query: "wireless headphones"
-)
-// v2 returns JSON with selection array, generates iframe HTML
-```
-
-**Setting API Version in Xcode:**
-
-1. Product → Scheme → Edit Scheme...
-2. Run → Arguments → Environment Variables
-3. Add: `GIST_ADS_API_VERSION` = `v1` or `v2`
-
-**Setting API Version via Terminal:**
-
-```bash
-export GIST_ADS_API_VERSION=v1
-# Then run your app
-```
-
-**Version Differences:**
-
-- **v1**: Returns JSON with `selection` array. Request includes `text`, `geo`, `auction_type`, `ad_type`.
-- **v2**: Returns JSON with `selection` array. Request includes `prompt`, `answer`, `geo`, `auction_type`, `ad_type`, `text`.
-
-**Note:** The SDK architecture is extensible and supports future API versions (v3, v4, etc.) without code changes. Simply set the `GIST_ADS_API_VERSION` environment variable to the desired version string.
 
 ### Configuring View Heights
 

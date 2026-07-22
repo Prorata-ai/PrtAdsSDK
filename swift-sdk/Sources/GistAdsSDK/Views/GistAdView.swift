@@ -2,12 +2,29 @@
 //  GistAdView.swift
 //  GistAdsSDK
 //
-//  UIKit wrapper for displaying Gist AI Search ads (Objective-C compatible)
+//  UIKit wrapper for displaying Gist AI Search ads (Objective-C compatible).
+//
+//  Like `GistAdControl`, this is a pure `adtag.js` embed: it builds bootstrap
+//  HTML via `SearchAdBootstrapHTML` and drives a `WKWebView` with the same
+//  `AdTagBridgeCoordinator` used by the SwiftUI controls (it's a plain
+//  `NSObject`-based `WKScriptMessageHandler`/`WKNavigationDelegate`/
+//  `WKUIDelegate`, usable directly outside SwiftUI). No native API calls are
+//  made; `adtag.js` owns the request and rendering. `sizes` is not yet
+//  exposed on this Objective-C surface -- it's fixed to `[.dynamic]` -- to
+//  keep this migration's ObjC-facing API change minimal; exposing it is a
+//  documented follow-up if full parity is wanted.
 //
 
 #if os(iOS)
 import UIKit
 import WebKit
+
+/// Wraps a WebView-level load failure message (from `AdTagBridgeCoordinator.onLoadFailure`)
+/// as an `Error` for `GistAdViewDelegate.adView(_:didFailWithError:)`.
+private struct AdViewLoadError: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
 
 /// UIKit-based ad view for displaying Gist AI Search ads
 /// This class is Objective-C compatible and can be used in both Swift and Objective-C projects
@@ -25,7 +42,10 @@ import WebKit
         }
     }
     
-    /// Publisher API key for authentication
+    /// Publisher API key for authentication. Note: unlike display ads, this
+    /// is a secret credential -- embedding it here means it becomes visible
+    /// in the loaded HTML/JS source, the same exposure a publisher already
+    /// accepts by embedding the JS tag on a public webpage.
     @objc public var publisherKey: String? {
         didSet {
             if publisherKey != oldValue {
@@ -70,15 +90,6 @@ import WebKit
         }
     }
     
-    /// API version to use (e.g., "v1", "v2")
-    @objc public var apiVersion: String? {
-        didSet {
-            if apiVersion != oldValue {
-                needsReload = true
-            }
-        }
-    }
-    
     /// Theme mode: "light", "dark", or "system" (default: "system")
     @objc public var theme: String = "system" {
         didSet {
@@ -94,34 +105,38 @@ import WebKit
     // MARK: - Private Properties
     
     private var webView: WKWebView?
+    private var coordinator: AdTagBridgeCoordinator?
     private var loadingIndicator: UIActivityIndicatorView?
-    private var apiService: AdAPIService?
     private var needsReload = false
     private var isLoading = false
-    private var lastContent: String?
     
-    /// Resolved theme based on system appearance if theme is "system"
+    /// Resolved theme based on system appearance if theme is "system".
+    ///
+    /// WORKAROUND: PrtAdsTag's CSS for `data-theme="dark"` produces
+    /// invisible (black-on-dark) text for any non-`gist.ai` publisher (see
+    /// the same coercion in `GistAdControl.swift`). We coerce "dark" to
+    /// "light" here until PrtAdsTag adds proper dark theme support for
+    /// arbitrary publishers.
     private var resolvedTheme: String {
+        let requested: String
         switch theme {
         case "light":
-            return "light"
+            requested = "light"
         case "dark":
-            return "dark"
+            requested = "dark"
         case "system":
-            // Detect system theme
-            if #available(iOS 13.0, *) {
-                return traitCollection.userInterfaceStyle == .dark ? "dark" : "light"
-            } else {
-                return "light"
-            }
+            requested = traitCollection.userInterfaceStyle == .dark ? "dark" : "light"
         default:
-            // Default to system detection for unknown values
-            if #available(iOS 13.0, *) {
-                return traitCollection.userInterfaceStyle == .dark ? "dark" : "light"
-            } else {
-                return "light"
-            }
+            requested = traitCollection.userInterfaceStyle == .dark ? "dark" : "light"
         }
+        return requested == "dark" ? "light" : requested
+    }
+
+    /// URL of the `adtag.js` bundle to embed for this environment. Also used
+    /// as the WebView's `baseURL` for `loadHTMLString`.
+    private var adTagScriptURL: String {
+        let base = environment.iframeBaseURL
+        return base.replacingOccurrences(of: "/$", with: "", options: .regularExpression) + "/adtag.js"
     }
     
     // MARK: - Initialization
@@ -194,12 +209,10 @@ import WebKit
         super.traitCollectionDidChange(previousTraitCollection)
         
         // Reload if theme is "system" and appearance changed
-        if #available(iOS 13.0, *) {
-            if theme == "system" && previousTraitCollection?.userInterfaceStyle != traitCollection.userInterfaceStyle {
-                needsReload = true
-                if !isLoading && canLoadAd() {
-                    loadAd()
-                }
+        if theme == "system" && previousTraitCollection?.userInterfaceStyle != traitCollection.userInterfaceStyle {
+            needsReload = true
+            if !isLoading && canLoadAd() {
+                loadAd()
             }
         }
     }
@@ -219,41 +232,29 @@ import WebKit
         isLoading = true
         needsReload = false
         
-        // Setup API service if needed
-        if apiService == nil || needsNewAPIService() {
-            setupAPIService()
-        }
-        
-        guard let apiService = apiService else {
-            handleError(AdAPIError.invalidURL)
-            return
-        }
-        
         // Show loading indicator
         loadingIndicator?.startAnimating()
         delegate?.adViewDidStartLoading?(self)
         
-        // Convert ad types
+        let slotID = "pr-search-ad-\(UUID().uuidString)"
+        let passbackFunctionName = "prSearchAdPassback\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
         let swiftAdTypes = convertAdTypes(adTypes)
         
-        // Fetch ad
-        Task {
-            do {
-                let content = try await apiService.fetchAd(
-                    query: query!,
-                    geo: geo,
-                    adTypes: swiftAdTypes,
-                    theme: resolvedTheme
-                )
-                
-                await MainActor.run {
-                    self.handleSuccess(content: content)
-                }
-            } catch {
-                await MainActor.run {
-                    self.handleError(error)
-                }
-            }
+        do {
+            let html = try SearchAdBootstrapHTML.generate(
+                publisherID: publisherID ?? "",
+                publisherKey: publisherKey ?? "",
+                query: query ?? "",
+                geo: geo,
+                adTypes: swiftAdTypes,
+                sizes: [.dynamic],
+                slotID: slotID,
+                passbackFunctionName: passbackFunctionName,
+                adTagScriptURL: adTagScriptURL
+            )
+            loadHTML(html)
+        } catch {
+            handleError(error)
         }
     }
     
@@ -271,77 +272,41 @@ import WebKit
                !query!.isEmpty
     }
     
-    private func needsNewAPIService() -> Bool {
-        // API service needs to be recreated if environment or API version changed
-        // This is handled by checking if setupAPIService was called with different params
-        return true // Always recreate for simplicity
-    }
-    
-    private func setupAPIService() {
-        guard let publisherID = publisherID,
-              let publisherKey = publisherKey else {
-            return
-        }
-        
-        let baseURL = environment.baseURL
-        apiService = AdAPIService(
-            baseURL: baseURL,
-            publisherID: publisherID,
-            publisherKey: publisherKey,
-            apiVersion: apiVersion
-        )
-    }
-    
-    private func handleSuccess(content: String) {
-        isLoading = false
-        loadingIndicator?.stopAnimating()
-        
-        // Load content if it changed
-        let contentChanged = lastContent != content
-        lastContent = content
-        
-        // Setup web view if needed
+    private func loadHTML(_ html: String) {
         if webView == nil {
             setupWebView()
         }
-        
-        // Load content if web view exists and content changed
-        if let webView = webView, contentChanged {
-            loadContent(content, in: webView)
-        }
-        
-        delegate?.adViewDidLoad?(self)
-    }
-    
-    private func handleError(_ error: Error) {
-        isLoading = false
-        loadingIndicator?.stopAnimating()
-        
-        // Show error state
-        showErrorState(error: error)
-        
-        delegate?.adView?(self, didFailWithError: error)
+        guard let webView = webView else { return }
+        let baseURL = URL(string: adTagScriptURL) ?? URL(string: "about:blank")!
+        applyThemeToWebView(webView, theme: resolvedTheme)
+        webView.loadHTMLString(html, baseURL: baseURL)
     }
     
     private func setupWebView() {
+        let coordinator = AdTagBridgeCoordinator()
+        coordinator.onAdRendered = { [weak self] height in
+            self?.handleAdRendered(height: height)
+        }
+        coordinator.onNoFill = { [weak self] in
+            self?.handleNoFill()
+        }
+        coordinator.onLoadFailure = { [weak self] message in
+            self?.handleError(AdViewLoadError(message: message))
+        }
+        coordinator.onAdClicked = { [weak self] url in
+            self?.handleClickURL(url)
+        }
+        self.coordinator = coordinator
+        
         let configuration = WKWebViewConfiguration()
+        configuration.userContentController.add(coordinator, name: AdTagBridgeMessage.adRendered)
+        configuration.userContentController.add(coordinator, name: AdTagBridgeMessage.noFill)
+        
         let webView = WKWebView(frame: bounds, configuration: configuration)
-        
-        // Configure web view
         webView.translatesAutoresizingMaskIntoConstraints = false
-        webView.scrollView.isScrollEnabled = false
-        webView.isOpaque = false
-        webView.backgroundColor = .clear
-        webView.configuration.allowsInlineMediaPlayback = true
-        webView.configuration.mediaTypesRequiringUserActionForPlayback = []
-        
-        // Setup navigation delegate with reference to this ad view
-        let navDelegate = NavigationDelegate()
-        navDelegate.adView = self
-        webView.navigationDelegate = navDelegate
-        
-        // Store delegate to prevent deallocation
-        objc_setAssociatedObject(webView, &AssociatedKeys.navigationDelegate, navDelegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        webView.navigationDelegate = coordinator
+        webView.uiDelegate = coordinator
+        configureWebView(webView, isIOS: true)
         
         addSubview(webView)
         NSLayoutConstraint.activate([
@@ -354,127 +319,37 @@ import WebKit
         self.webView = webView
     }
     
-    private func loadContent(_ content: String, in webView: WKWebView) {
-        let html = wrappedHTML(content: content, isIOS: true)
-        let baseURL = URL(string: environment.iframeBaseURL) ?? URL(string: "about:blank")!
-        webView.loadHTMLString(html, baseURL: baseURL)
+    private func handleAdRendered(height: Double) {
+        isLoading = false
+        loadingIndicator?.stopAnimating()
+        delegate?.adViewDidLoad?(self)
+        delegate?.adView?(self, didLoadWithContentHeight: CGFloat(height))
     }
     
-    private func showErrorState(error: Error) {
-        // Remove web view if showing error
+    private func handleNoFill() {
+        isLoading = false
+        loadingIndicator?.stopAnimating()
+        delegate?.adViewDidReceiveNoFill?(self)
+    }
+    
+    private func handleError(_ error: Error) {
+        isLoading = false
+        loadingIndicator?.stopAnimating()
+        teardownWebView()
+        delegate?.adView?(self, didFailWithError: error)
+    }
+    
+    private func teardownWebView() {
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: AdTagBridgeMessage.adRendered)
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: AdTagBridgeMessage.noFill)
         webView?.removeFromSuperview()
         webView = nil
-        
-        // Could add error label here if needed
-        // For now, just clear the view
+        coordinator = nil
     }
     
-    // MARK: - HTML Generation (reused from AdWebView)
-    
-    private func wrappedHTML(content: String, isIOS: Bool) -> String {
-        let viewport = isIOS
-            ? "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-            : "width=device-width, initial-scale=1.0"
-        
-        let adContentDiv = isIOS
-            ? "<div class=\"ad-content\">\(content)</div>"
-            : content
-        
-        return """
-        <!DOCTYPE html>
-        <html>
-            <head>
-                <meta name="viewport" content="\(viewport)">
-                <style>
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                    }
-                    body {
-                        background: transparent;
-                        overflow: hidden;
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    }
-                    .ad-container {
-                        width: 100%;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        padding: 8px;
-                    }
-                    \(isIOS ? """
-                    .ad-content {
-                        width: 100%;
-                        max-width: 600px;
-                    }
-                    """ : "")
-                </style>
-            </head>
-            <body>
-                <div class="ad-container">
-                    \(adContentDiv)
-                </div>
-            </body>
-        </html>
-        """
-    }
-}
-
-// MARK: - Navigation Delegate
-
-private class NavigationDelegate: NSObject, WKNavigationDelegate {
-    weak var adView: GistAdView?
-    
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        guard let url = navigationAction.request.url else {
-            decisionHandler(.allow)
-            return
-        }
-        
-        // Allow navigation for ad server domains and non-http schemes (about:blank, etc.)
-        let scheme = url.scheme?.lowercased() ?? ""
-        if scheme != "http" && scheme != "https" {
-            decisionHandler(.allow)
-            return
-        }
-        
-        // Allow navigation for allowed ad domains
-        if APIConstants.isAllowedAdDomain(url) {
-            decisionHandler(.allow)
-            return
-        }
-        
-        // External URL clicked - cancel navigation and notify delegate
-        decisionHandler(.cancel)
-        handleExternalURL(url)
-    }
-    
-    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
-        decisionHandler(.allow)
-    }
-    
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        // Measure content height after navigation finishes
-        webView.evaluateJavaScript("document.documentElement.scrollHeight") { [weak self] result, error in
-            guard let self = self,
-                  let adView = self.adView,
-                  error == nil,
-                  let height = result as? CGFloat else {
-                return
-            }
-            
-            DispatchQueue.main.async {
-                adView.delegate?.adView?(adView, didLoadWithContentHeight: height)
-            }
-        }
-    }
-    
-    private func handleExternalURL(_ url: URL) {
-        guard let adView = adView else { return }
-        
+    private func handleClickURL(_ url: URL) {
         // Try calling the delegate method - returns Void? (nil if not implemented)
-        if adView.delegate?.adView?(adView, didClickURL: url) == nil {
+        if delegate?.adView?(self, didClickURL: url) == nil {
             // Delegate method not implemented, open in Safari
             DispatchQueue.main.async {
                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
@@ -483,11 +358,4 @@ private class NavigationDelegate: NSObject, WKNavigationDelegate {
     }
 }
 
-// MARK: - Associated Keys
-
-private struct AssociatedKeys {
-    static var navigationDelegate: UInt8 = 0
-}
-
 #endif // os(iOS)
-

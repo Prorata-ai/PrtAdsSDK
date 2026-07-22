@@ -1,34 +1,17 @@
 package com.gist.ads.sdk.ui
 
-// Main ad control for displaying Gist AI Search ads: embeds the real
-// `adtag.js` script in a WebView and drives it via
-// `defineSlot({id, api_key, geo}, slotId, sizes, adTypes)` ->
-// `slot.definePrompt(query)` -> `displayAd(slotId)`, mirroring exactly how a
-// publisher's own webpage would embed the tag directly.
+// Main ad control for displaying Gist contextual display ads: embeds the
+// real `adtag.js` script in a WebView and drives it via
+// `defineSlot({id, url}, slotId, sizes)` -> `displayAd(slotId)`, mirroring
+// exactly how a publisher's own webpage would embed the tag directly.
 //
-// This control is a thin wrapper around that HTML/JS embed: it makes no API
-// calls of its own. `adtag.js` owns the entire search request, response
-// parsing, and rendering (via its own JSONP GET to the Search API), so as
-// the tag and backend evolve, this control keeps working without needing to
-// track along. This mirrors the pure-embed pattern already shipped for
-// `GistDisplayAdControl` -- see that file's header comment and the plan
-// that migrated search ads to match it.
-//
-// Because `adtag.js`'s own search request has no concept of a selectable
-// API version, the previous `apiVersion` parameter has been dropped
-// entirely (no v1 fallback), matching the precedent set when `context` was
-// dropped from display ads. `sizes` is a new public param since
-// `defineSlot` requires a non-empty `sizes` array and the previous
-// iframe-based control had no sizing concept at all.
-//
-// Note on the publisher-key exposure trade-off: `publisherKey` is now
-// embedded directly in the bootstrap HTML/JS and sent by `adtag.js` as a
-// `publisher_key` query param in a public JSONP GET made from inside the
-// WebView -- visible in the loaded HTML/JS source (inspectable via WebView
-// dev tools). This is the same exposure model a publisher already accepts
-// by embedding the JS tag on a public webpage; native apps lose the extra
-// native-only protection they previously had from sending it as a hidden
-// HTTP header in a server-side POST.
+// This control is a thin wrapper around that HTML/JS embed: it makes no
+// API calls of its own. `adtag.js` owns the entire ad request, response
+// parsing, and rendering, so as the tag and backend evolve, this control
+// keeps working without needing to track along. (An earlier revision
+// fetched ads natively to support a `context` targeting param that
+// `adtag.js`'s own request has no field for; that param has been removed
+// so this control can stay a pure embed -- see PR #7 review discussion.)
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -42,31 +25,26 @@ import androidx.compose.ui.unit.dp
 import com.gist.ads.sdk.APIConstants
 import com.gist.ads.sdk.models.AdSize
 import com.gist.ads.sdk.models.AdTagLoadState
-import com.gist.ads.sdk.models.AdType
-import com.gist.ads.sdk.utils.SearchAdBootstrapHTML
+import com.gist.ads.sdk.utils.DisplayAdBootstrapHTML
 import java.util.UUID
 import kotlinx.coroutines.launch
 
 /**
- * Main composable control for displaying Gist AI Search ads.
+ * Main composable control for displaying Gist contextual display ads.
  *
- * Unlike [GistDisplayAdControl] (display ads, no secret key), search ads are
- * gated by a secret publisher key and targeted by a search query. Mirrors
- * the web tag's `defineSlot({id, api_key, geo}, slotId, sizes, adTypes)` ->
- * `slot.definePrompt(query)` -> `displayAd(slotId)` flow.
+ * Unlike [GistAdControl] (search ads, gated by a secret publisher key),
+ * display ads are targeted purely by publisher ID + page URL + size, and
+ * the backend does not require a publisher key. Mirrors the web tag's
+ * `defineSlot({id, url}, slotId, sizes)` -> `displayAd(slotId)` flow.
  *
- * @param publisherId Your publisher ID credential
- * @param publisherKey Your publisher API key
- * @param query Search query to fetch relevant ads for (mirrors `slot.definePrompt(...)`)
- * @param geo Geographic location code (e.g., "US", "GB", "CA")
- * @param answer Answer text (mirrors `slot.defineAnswer(...)`); the ad tag docs mark this as
- *   required for search ads, so when omitted it defaults to [query]
- * @param adTypes Optional list of ad types to filter (null = all types)
- * @param sizes One or more supported ad sizes (mirrors `sizes` in `defineSlot`); defaults to
- *   `[AdSize.DYNAMIC]`
+ * @param publisherId Your publisher ID
+ * @param pageUrl The current page/context URL to target the ad against (mirrors `url` in
+ *   `defineSlot`). Must not be blank -- a blank value surfaces as a [AdTagLoadState.Failed] state
+ *   (with retry) rather than silently sending an empty `url` to `adtag.js`.
+ * @param sizes One or more supported ad sizes (mirrors `sizes` in `defineSlot`)
  * @param environment API environment (defaults to production)
- * @param modifier Modifier for styling the ad control
  * @param theme Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)
+ * @param modifier Modifier for styling the ad control
  * @param onAdLoaded Optional callback invoked when ad successfully loads
  * @param onAdClicked Optional callback invoked when user clicks an ad link (provides URL); if
  *   null, opens the URL in the default browser
@@ -76,58 +54,39 @@ import kotlinx.coroutines.launch
  *   hard-coded empty state. Defaults to a simple "No ad available" text when not provided.
  */
 @Composable
-fun GistAdControl(
+fun GistDisplayAdControl(
     publisherId: String,
-    publisherKey: String,
-    query: String,
-    geo: String = "US",
-    answer: String? = null,
-    adTypes: List<AdType>? = null,
-    sizes: List<AdSize> = listOf(AdSize.DYNAMIC),
+    pageUrl: String,
+    sizes: List<AdSize>,
     environment: APIConstants.Environment = APIConstants.Environment.PRODUCTION,
-    modifier: Modifier = Modifier,
     theme: String = "system",
+    modifier: Modifier = Modifier,
     onAdLoaded: (() -> Unit)? = null,
     onAdClicked: ((String) -> Unit)? = null,
     onContentHeightChanged: ((Float) -> Unit)? = null,
     passback: (@Composable () -> Unit)? = null
 ) {
     val isDarkMode = isSystemInDarkTheme()
-
-    // Resolve theme to "light" or "dark".
-    //
-    // WORKAROUND: PrtAdsTag's CSS for `data-theme="dark"` sets
-    // `color-scheme: dark` on `:root` while the wrapper is transparent and
-    // `.content-container` keeps explicit `color: #000000` for text. This
-    // produces black text on a dark canvas (invisible) for any non-`gist.ai`
-    // publisher. Until PrtAdsTag adds proper dark theme support for
-    // arbitrary publishers, we coerce "dark" to "light" here so the ad
-    // renders correctly. The surrounding app UI is unaffected — it still
-    // follows `isSystemInDarkTheme()` / Material theming.
     val resolvedTheme = remember(theme, isDarkMode) {
-        val requested = when (theme) {
+        when (theme) {
             "light" -> "light"
             "dark" -> "dark"
             "system" -> if (isDarkMode) "dark" else "light"
             else -> if (isDarkMode) "dark" else "light"
         }
-        if (requested == "dark") "light" else requested
     }
 
     var state by remember { mutableStateOf<AdTagLoadState>(AdTagLoadState.Loading) }
-    var currentSlot by remember { mutableStateOf<SearchAdSlotLoad?>(null) }
+    var currentSlot by remember { mutableStateOf<DisplayAdSlotLoad?>(null) }
 
     val scope = rememberCoroutineScope()
 
-    // Identity key capturing every load-triggering parameter, mirroring
-    // GistDisplayAdControl's `loadKey`: `LaunchedEffect` below re-runs
-    // `prepareSlot()` whenever this changes.
-    val loadKey = remember(query, geo, answer, adTypes, sizes, environment, resolvedTheme) {
+    // Identity key capturing every load-triggering parameter, mirroring the
+    // Swift SDK's `loadKey`: `LaunchedEffect` below re-runs `prepareSlot()`
+    // whenever this changes.
+    val loadKey = remember(pageUrl, sizes, environment, resolvedTheme) {
         listOf(
-            query,
-            geo,
-            answer ?: "",
-            adTypes?.joinToString(",") { it.value } ?: "",
+            pageUrl,
             sizes.joinToString(",") { it.displayName },
             environment.name,
             resolvedTheme
@@ -140,25 +99,21 @@ fun GistAdControl(
     // call is made here or anywhere else in this control; `adtag.js` makes
     // its own request once the resulting WebView loads.
     fun prepareSlot() {
-        val slotId = "pr-search-ad-${UUID.randomUUID()}"
-        val passbackFunctionName = "prSearchAdPassback${UUID.randomUUID().toString().replace("-", "")}"
+        val slotId = "pr-display-ad-${UUID.randomUUID()}"
+        val passbackFunctionName = "prDisplayAdPassback${UUID.randomUUID().toString().replace("-", "")}"
         state = AdTagLoadState.Loading
         currentSlot = null
 
         try {
-            val html = SearchAdBootstrapHTML.generate(
+            val html = DisplayAdBootstrapHTML.generate(
                 publisherId = publisherId,
-                publisherKey = publisherKey,
-                query = query,
-                geo = geo,
-                answer = answer,
-                adTypes = adTypes,
+                pageUrl = pageUrl,
                 sizes = sizes,
                 slotId = slotId,
                 passbackFunctionName = passbackFunctionName,
                 adTagScriptUrl = environment.adTagScriptUrl
             )
-            currentSlot = SearchAdSlotLoad(slotId, html)
+            currentSlot = DisplayAdSlotLoad(slotId, html)
         } catch (e: Exception) {
             state = AdTagLoadState.Failed(e.message ?: "Unknown error")
         }
@@ -197,11 +152,11 @@ fun GistAdControl(
                     }
                 }
                 if (currentState is AdTagLoadState.Loading) {
-                    SearchAdLoadingView()
+                    DisplayAdLoadingView()
                 }
             }
             is AdTagLoadState.Failed -> {
-                SearchAdErrorView(
+                DisplayAdErrorView(
                     message = currentState.message,
                     onRetry = { scope.launch { prepareSlot() } }
                 )
@@ -210,17 +165,17 @@ fun GistAdControl(
                 if (passback != null) {
                     passback()
                 } else {
-                    SearchAdDefaultNoFillView()
+                    DisplayAdDefaultNoFillView()
                 }
             }
         }
     }
 }
 
-private data class SearchAdSlotLoad(val slotId: String, val html: String)
+private data class DisplayAdSlotLoad(val slotId: String, val html: String)
 
 @Composable
-private fun SearchAdLoadingView() {
+private fun DisplayAdLoadingView() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -238,7 +193,7 @@ private fun SearchAdLoadingView() {
 }
 
 @Composable
-private fun SearchAdErrorView(
+private fun DisplayAdErrorView(
     message: String,
     onRetry: () -> Unit
 ) {
@@ -282,7 +237,7 @@ private fun SearchAdErrorView(
 }
 
 @Composable
-private fun SearchAdDefaultNoFillView() {
+private fun DisplayAdDefaultNoFillView() {
     Box(
         modifier = Modifier
             .fillMaxWidth()

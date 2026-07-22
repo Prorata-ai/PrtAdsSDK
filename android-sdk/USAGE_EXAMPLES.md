@@ -5,16 +5,17 @@ Comprehensive examples for using the Gist Ads SDK in your Android application.
 ## Table of Contents
 
 1. [Basic Usage](#basic-usage)
-2. [API Versioning](#api-versioning)
-3. [Event Callbacks](#event-callbacks)
-4. [Theme Support](#theme-support)
-5. [Dynamic Search Integration](#dynamic-search-integration)
-6. [Ad Type Filtering](#ad-type-filtering)
-7. [Geographic Targeting](#geographic-targeting)
-8. [Custom Styling](#custom-styling)
-9. [Advanced Patterns](#advanced-patterns)
-10. [Error Handling](#error-handling)
-11. [Performance Optimization](#performance-optimization)
+2. [Display Ads](#display-ads)
+3. [Search Ads with Sizes and No-Fill Passback](#search-ads-with-sizes-and-no-fill-passback)
+4. [Dynamic Search Integration](#dynamic-search-integration)
+5. [Event Callbacks](#event-callbacks)
+6. [Theme Support](#theme-support)
+7. [Ad Type Filtering](#ad-type-filtering)
+8. [Geographic Targeting](#geographic-targeting)
+9. [Custom Styling](#custom-styling)
+10. [Advanced Patterns](#advanced-patterns)
+11. [Error Handling](#error-handling)
+12. [Performance Optimization](#performance-optimization)
 
 ---
 
@@ -73,7 +74,86 @@ fun CardAdExample() {
 
 ---
 
-## API Versioning
+## Display Ads
+
+### Display Ad in an Article
+
+Display ads (`GistDisplayAdControl`) are targeted by publisher ID + page URL + size, mirroring the web tag's `defineSlot({id, url}, slotId, sizes)` -> `displayAd(slotId)` flow. The backend crawls `pageUrl` to infer relevance, the same way it would for a real webpage. See "How Display Ads Are Rendered" in the README for how this control embeds the real `adtag.js` script rather than calling any API itself:
+
+```kotlin
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.gist.ads.sdk.models.AdSize
+import com.gist.ads.sdk.ui.GistDisplayAdControl
+
+@Composable
+fun ArticleWithDisplayAd() {
+    Column {
+        Text("Article content...")
+
+        GistDisplayAdControl(
+            publisherId = "pub-12345",
+            pageUrl = "https://example.com/articles/ai-trends",
+            sizes = listOf(AdSize.MEDIUM_RECTANGLE),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+        )
+    }
+}
+```
+
+### Display Ad with Custom No-Fill Passback
+
+```kotlin
+@Composable
+fun DisplayAdWithPassbackExample() {
+    GistDisplayAdControl(
+        publisherId = "pub-12345",
+        pageUrl = "https://example.com/articles/ai-trends",
+        sizes = listOf(AdSize.MEDIUM_RECTANGLE),
+        passback = {
+            Text("Check out our newsletter instead!")
+        }
+    )
+}
+```
+
+---
+
+## Search Ads with Sizes and No-Fill Passback
+
+Like display ads, search ads are rendered by embedding `adtag.js` directly, so they need an explicit `sizes` list (defaults to `listOf(AdSize.DYNAMIC)`) and support a custom `passback` composable for when no ad is available:
+
+```kotlin
+import com.gist.ads.sdk.models.AdSize
+import com.gist.ads.sdk.ui.GistAdControl
+
+@Composable
+fun SearchAdWithSizesExample() {
+    GistAdControl(
+        publisherId = "pub-12345",
+        publisherKey = "key-67890",
+        query = "wireless headphones",
+        sizes = listOf(AdSize.MEDIUM_RECTANGLE, AdSize.LEADERBOARD),
+        passback = {
+            Text(
+                "Check out our newsletter instead!",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        modifier = Modifier.fillMaxWidth().height(250.dp)
+    )
+}
+```
+
+---
+
+## Dynamic Search Integration
 
 ### Basic Search
 
@@ -734,63 +814,6 @@ fun LazyLoadAdExample() {
 
 ---
 
-## Debug Mode
-
-Enable logging for development to see API requests, responses, and errors:
-
-```kotlin
-@Composable
-fun DebugAdExample() {
-    GistAdControl(
-        publisherId = "your-publisher-id",
-        publisherKey = "your-publisher-key",
-        query = "test products",
-        enableLogging = BuildConfig.DEBUG // Only in debug builds
-    )
-}
-```
-
-### View Debug Logs
-
-**Using adb logcat:**
-
-```bash
-# Filter by SDK
-adb logcat | grep "GistAds"
-
-# Filter by your app
-adb logcat | grep "com.yourapp"
-
-# View all errors
-adb logcat *:E
-
-# Combined filter
-adb logcat | grep -E "GistAds|Exception|Error"
-```
-
-**In Android Studio:**
-
-1. Open Logcat panel (bottom of IDE)
-2. Select your device
-3. Filter by tag: `GistAds`
-4. Or filter by package: `com.gist.ads`
-
-### Debug Output Examples
-
-When `enableLogging = true`, you'll see:
-
-```
-D/GistAds: → API Request
-D/GistAds:   POST /v2/search
-D/GistAds:   Headers: Publisher-ID, Publisher-Key
-D/GistAds:   Body: {"prompt":"wireless headphones","geo":"US",...}
-D/GistAds: ← API Response (200 OK)
-D/GistAds:   selection: [iframeUrl: https://...]
-D/GistAds: ✅ Ad loaded successfully
-```
-
----
-
 ## Complete Example
 
 A comprehensive example combining multiple features:
@@ -801,7 +824,6 @@ fun CompleteExample() {
     var searchText by remember { mutableStateOf("") }
     var debouncedQuery by remember { mutableStateOf("") }
     var selectedGeo by remember { mutableStateOf("US") }
-    var selectedApiVersion by remember { mutableStateOf("v2") }
     var imageEnabled by remember { mutableStateOf(true) }
     var textImageEnabled by remember { mutableStateOf(true) }
     var textEnabled by remember { mutableStateOf(true) }
@@ -839,18 +861,6 @@ fun CompleteExample() {
             label = { Text("Search...") },
             placeholder = { Text("wireless headphones") }
         )
-        
-        // API Version selector
-        Text("API Version", style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("v1", "v2").forEach { version ->
-                FilterChip(
-                    selected = selectedApiVersion == version,
-                    onClick = { selectedApiVersion = version },
-                    label = { Text(version.uppercase()) }
-                )
-            }
-        }
         
         // Ad type filters
         Text("Ad Types", style = MaterialTheme.typography.labelLarge)
@@ -895,8 +905,6 @@ fun CompleteExample() {
                     query = debouncedQuery,
                     geo = selectedGeo,
                     adTypes = adTypes,
-                    apiVersion = selectedApiVersion,
-                    enableLogging = BuildConfig.DEBUG,
                     onAdLoaded = {
                         adLoadCount++
                         println("✅ Ad #$adLoadCount loaded")
@@ -923,7 +931,6 @@ fun CompleteExample() {
                     Text("Stats", style = MaterialTheme.typography.titleSmall)
                     Text("Query: $debouncedQuery")
                     Text("Region: $selectedGeo")
-                    Text("API: $selectedApiVersion")
                     Text("Types: ${adTypes?.joinToString { it.displayName } ?: "All"}")
                     Text("Loads: $adLoadCount")
                     Text("Height: ${adHeight.value.toInt()}dp")

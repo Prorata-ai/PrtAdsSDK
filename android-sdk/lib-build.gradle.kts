@@ -85,7 +85,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "com.gist.ads"
             artifactId = "sdk"
-            version = "1.0.0"
+            version = "1.0.4"
 
             afterEvaluate {
                 from(components["release"])

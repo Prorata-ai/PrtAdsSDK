@@ -132,29 +132,7 @@ GistAdControl(
 )
 ```
 
-**Note:** The environment parameter controls which API endpoint is used. Use staging or integration for testing, and production for release builds.
-
-### API Version Configuration
-
-The SDK supports both v1 and v2 API endpoints. By default, v2 is used. You can switch versions using the `GIST_ADS_API_VERSION` environment variable.
-
-**Testing with v1:**
-
-1. In Xcode: Product → Scheme → Edit Scheme...
-2. Run → Arguments → Environment Variables
-3. Add: `GIST_ADS_API_VERSION` = `v1`
-4. Run the app
-
-**Testing with v2 (Default):**
-
-- Omit the environment variable, or set `GIST_ADS_API_VERSION` = `v2`
-
-**Version Differences:**
-
-- **v1**: Returns JSON with `selection` array
-- **v2**: Returns JSON with `selection` array, generates iframe HTML (default)
-
-**Note:** The SDK architecture is extensible and supports future API versions. Simply set the `GIST_ADS_API_VERSION` environment variable to the desired version string (e.g., "v3", "v4").
+**Note:** The environment parameter controls which `adtag.js` host is embedded. Use staging or integration for testing, and production for release builds.
 
 ## Requirements
 

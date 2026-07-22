@@ -25,12 +25,8 @@ import Foundation
         }
     }
     
-    /// Get base URL for this environment
-    internal var baseURL: String {
-        return APIConstants.baseURL(for: swiftEnvironment)
-    }
-    
-    /// Get iframe base URL for this environment
+    /// Get iframe base URL for this environment. Also used as the base URL
+    /// for the embedded `adtag.js` bundle for both search and display ads.
     internal var iframeBaseURL: String {
         return APIConstants.iframeBaseURL(for: swiftEnvironment)
     }

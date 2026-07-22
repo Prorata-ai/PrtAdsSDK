@@ -19,6 +19,12 @@ object Config {
      * Get this from your Gist Ads dashboard
      */
     const val PUBLISHER_KEY = "your-publisher-key"
+
+    /**
+     * Your publisher ID for display ads.
+     * Unlike search ads, display ads don't require a publisher key.
+     */
+    const val DISPLAY_PUBLISHER_ID = "your-publisher-id"
     
     /**
      * Default geographic location
@@ -29,16 +35,7 @@ object Config {
      * API Configuration
      */
     val DEFAULT_ENVIRONMENT = APIConstants.Environment.PRODUCTION
-    val DEFAULT_API_VERSION = APIConstants.API_VERSION_V2
-    
-    /**
-     * Available API versions for switching
-     */
-    val AVAILABLE_API_VERSIONS = listOf(
-        APIConstants.API_VERSION_V1 to "API Version 1",
-        APIConstants.API_VERSION_V2 to "API Version 2"
-    )
-    
+
     /**
      * Sample search queries for testing
      */

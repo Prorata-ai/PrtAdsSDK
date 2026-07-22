@@ -14,8 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.gist.ads.example.BuildConfig
 import com.gist.ads.example.Config
+import com.gist.ads.example.ui.AdSizeDropdown
+import com.gist.ads.sdk.models.AdSize
 import com.gist.ads.sdk.models.AdType
 import com.gist.ads.sdk.ui.GistAdControl
 import java.util.UUID
@@ -28,7 +29,7 @@ import java.util.UUID
 fun QuickDemoScreen() {
     var searchQuery by remember { mutableStateOf("best wireless headphones") }
     var selectedGeo by remember { mutableStateOf("US") }
-    var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
+    var selectedSize by remember { mutableStateOf(AdSize.DYNAMIC) }
     var selectedTheme by remember { mutableStateOf("system") }
     var imageEnabled by remember { mutableStateOf(true) }
     var textImageEnabled by remember { mutableStateOf(true) }
@@ -64,8 +65,8 @@ fun QuickDemoScreen() {
             onTextImageEnabledChange = { textImageEnabled = it },
             textEnabled = textEnabled,
             onTextEnabledChange = { textEnabled = it },
-            selectedApiVersion = selectedApiVersion,
-            onApiVersionChange = { selectedApiVersion = it; refreshTrigger = UUID.randomUUID() },
+            selectedSize = selectedSize,
+            onSizeChange = { selectedSize = it; refreshTrigger = UUID.randomUUID() },
             selectedTheme = selectedTheme,
             onThemeChange = { selectedTheme = it; refreshTrigger = UUID.randomUUID() },
             onRefresh = { refreshTrigger = UUID.randomUUID() }
@@ -76,7 +77,7 @@ fun QuickDemoScreen() {
             searchQuery = searchQuery,
             selectedGeo = selectedGeo,
             adTypes = adTypes,
-            selectedApiVersion = selectedApiVersion,
+            selectedSize = selectedSize,
             selectedTheme = selectedTheme,
             refreshTrigger = refreshTrigger
         )
@@ -132,8 +133,8 @@ private fun ConfigurationSection(
     onTextImageEnabledChange: (Boolean) -> Unit,
     textEnabled: Boolean,
     onTextEnabledChange: (Boolean) -> Unit,
-    selectedApiVersion: String,
-    onApiVersionChange: (String) -> Unit,
+    selectedSize: AdSize,
+    onSizeChange: (AdSize) -> Unit,
     selectedTheme: String,
     onThemeChange: (String) -> Unit,
     onRefresh: () -> Unit
@@ -233,30 +234,17 @@ private fun ConfigurationSection(
                 }
             }
             
-            // API Version
+            // Ad Size
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "API Version",
+                    text = "Ad Size",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = selectedApiVersion == "v1",
-                        onClick = { onApiVersionChange("v1") },
-                        label = { Text("v1") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = selectedApiVersion == "v2",
-                        onClick = { onApiVersionChange("v2") },
-                        label = { Text("v2") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                AdSizeDropdown(
+                    selectedSize = selectedSize,
+                    onSizeSelected = onSizeChange
+                )
             }
             
             // Theme
@@ -313,7 +301,7 @@ private fun AdPreviewSection(
     searchQuery: String,
     selectedGeo: String,
     adTypes: List<AdType>?,
-    selectedApiVersion: String,
+    selectedSize: AdSize,
     selectedTheme: String,
     refreshTrigger: UUID
 ) {
@@ -348,9 +336,8 @@ private fun AdPreviewSection(
                             query = searchQuery,
                             geo = selectedGeo,
                             adTypes = adTypes,
-                            apiVersion = selectedApiVersion,
+                            sizes = listOf(selectedSize),
                             theme = selectedTheme,
-                            enableLogging = BuildConfig.DEBUG,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
