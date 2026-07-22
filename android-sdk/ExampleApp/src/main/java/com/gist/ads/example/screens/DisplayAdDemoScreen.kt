@@ -11,8 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.gist.ads.example.Config
+import com.gist.ads.example.ui.AdSizeDropdown
 import com.gist.ads.example.ui.SectionTitle
-import com.gist.ads.sdk.DisplayAPIConstants
+import com.gist.ads.sdk.APIConstants
 import com.gist.ads.sdk.models.AdSize
 import com.gist.ads.sdk.ui.GistDisplayAdControl
 import java.util.UUID
@@ -26,18 +27,8 @@ import java.util.UUID
 fun DisplayAdDemoScreen() {
     var pageUrl by remember { mutableStateOf("") }
     var selectedSize by remember { mutableStateOf(AdSize.MEDIUM_RECTANGLE) }
-    var selectedEnvironment by remember { mutableStateOf(DisplayAPIConstants.Environment.PRODUCTION) }
+    var selectedEnvironment by remember { mutableStateOf(APIConstants.Environment.PRODUCTION) }
     var refreshTrigger by remember { mutableStateOf(UUID.randomUUID()) }
-
-    // Native screens have no crawlable HTML for the backend to infer
-    // relevance from via `pageUrl` alone (unlike a real webpage), so
-    // `context` lets the app hand over that signal explicitly instead.
-    var contextCategory by remember { mutableStateOf("") }
-    var contextKeywords by remember { mutableStateOf("") }
-
-    val context = remember(contextCategory, contextKeywords) {
-        buildContext(contextCategory, contextKeywords)
-    }
 
     val availableSizes = remember {
         listOf(
@@ -90,7 +81,7 @@ fun DisplayAdDemoScreen() {
 
         SectionTitle("Environment:")
 
-        val environments = remember { DisplayAPIConstants.Environment.values().toList() }
+        val environments = remember { APIConstants.Environment.values().toList() }
 
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             environments.forEachIndexed { index, environment ->
@@ -110,30 +101,6 @@ fun DisplayAdDemoScreen() {
             }
         }
 
-        SectionTitle("Context (optional):")
-
-        Text(
-            text = "Native screens have no crawlable HTML, so this hands the backend explicit signal instead of relying on Page URL alone.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        OutlinedTextField(
-            value = contextCategory,
-            onValueChange = { contextCategory = it },
-            placeholder = { Text("Category, e.g. \"technology\"") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = contextKeywords,
-            onValueChange = { contextKeywords = it },
-            placeholder = { Text("Keywords, comma-separated") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-
         Button(
             onClick = { refreshTrigger = UUID.randomUUID() },
             modifier = Modifier.fillMaxWidth()
@@ -152,7 +119,6 @@ fun DisplayAdDemoScreen() {
                     pageUrl = pageUrl,
                     sizes = listOf(selectedSize),
                     environment = selectedEnvironment,
-                    context = context,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height((selectedSize.height ?: 250).dp),
@@ -181,63 +147,6 @@ fun DisplayAdDemoScreen() {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                )
-            }
-        }
-    }
-}
-
-/**
- * Builds the `context` map sent to `GistDisplayAdControl`, or `null` if
- * the user hasn't entered anything.
- */
-private fun buildContext(category: String, keywords: String): Map<String, Any>? {
-    val result = mutableMapOf<String, Any>()
-    if (category.isNotBlank()) {
-        result["category"] = category.trim()
-    }
-    val keywordList = keywords.split(",")
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-    if (keywordList.isNotEmpty()) {
-        result["keywords"] = keywordList
-    }
-    return result.ifEmpty { null }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AdSizeDropdown(
-    selectedSize: AdSize,
-    sizes: List<AdSize>,
-    onSizeSelected: (AdSize) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        OutlinedTextField(
-            value = selectedSize.displayName,
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            sizes.forEach { size ->
-                DropdownMenuItem(
-                    text = { Text(size.displayName) },
-                    onClick = {
-                        onSizeSelected(size)
-                        expanded = false
                     }
                 )
             }

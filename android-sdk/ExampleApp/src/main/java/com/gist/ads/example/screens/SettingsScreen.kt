@@ -87,7 +87,6 @@ fun SettingsScreen() {
                         Spacer(modifier = Modifier.height(8.dp))
                         InfoRow("Publisher ID", Config.PUBLISHER_ID)
                         InfoRow("Default Geo", Config.DEFAULT_GEO)
-                        InfoRow("API Version", Config.DEFAULT_API_VERSION)
                         InfoRow("Environment", Config.DEFAULT_ENVIRONMENT.name)
                         InfoRow("Debug Mode", if (BuildConfig.DEBUG) "Enabled" else "Disabled")
                     }

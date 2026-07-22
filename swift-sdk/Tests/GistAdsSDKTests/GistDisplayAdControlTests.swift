@@ -4,7 +4,7 @@
 //
 //  Unit tests for GistDisplayAdControl. SwiftUI view bodies aren't directly
 //  inspectable in a plain XCTest target, so the state-transition logic lives
-//  in the pure, testable `DisplayAdLoadState` (see DisplayAdLoadState.swift)
+//  in the pure, testable `AdTagLoadState` (see AdTagLoadState.swift)
 //  and is exercised here; initializer tests confirm the public API compiles
 //  and accepts the documented parameters, matching the existing convention
 //  for GistAdControl in GistAdsSDKTests.swift.
@@ -16,32 +16,31 @@ import XCTest
 
 final class GistDisplayAdControlTests: XCTestCase {
 
-    // MARK: - DisplayAdLoadState transitions
+    // MARK: - AdTagLoadState
 
-    func testSuccessResultTransitionsToLoaded() {
-        let state = DisplayAdLoadState.from(result: .success("<div>ad</div>"))
-        XCTAssertEqual(state, .loaded("<div>ad</div>"))
+    // `AdTagLoadState` is now event-derived (see AdTagLoadState.swift):
+    // GistDisplayAdControl assigns it directly from bridge callbacks/native
+    // failures rather than deriving it from a single `Result`. These tests
+    // just confirm the value type's equality semantics, which the control
+    // relies on for its `switch state` body and `isLoaded` check.
+
+    func testLoadedStatesWithSameHeightAreEqual() {
+        XCTAssertEqual(AdTagLoadState.loaded(height: 250), AdTagLoadState.loaded(height: 250))
     }
 
-    func testNoFillErrorTransitionsToNoFill() {
-        let state = DisplayAdLoadState.from(result: .failure(DisplayAdAPIError.noFill))
-        XCTAssertEqual(state, .noFill)
+    func testLoadedStatesWithDifferentHeightAreNotEqual() {
+        XCTAssertNotEqual(AdTagLoadState.loaded(height: 250), AdTagLoadState.loaded(height: 100))
     }
 
-    func testOtherErrorTransitionsToFailedWithMessage() {
-        let state = DisplayAdLoadState.from(result: .failure(DisplayAdAPIError.httpError(statusCode: 500, response: nil)))
-        XCTAssertEqual(state, .failed("HTTP error: 500"))
+    func testLoadingNoFillAndFailedAreDistinctStates() {
+        XCTAssertNotEqual(AdTagLoadState.loading, AdTagLoadState.noFill)
+        XCTAssertNotEqual(AdTagLoadState.loading, AdTagLoadState.failed("error"))
+        XCTAssertNotEqual(AdTagLoadState.noFill, AdTagLoadState.failed("error"))
     }
 
-    func testInvalidSizesErrorTransitionsToFailed() {
-        let state = DisplayAdLoadState.from(result: .failure(DisplayAdAPIError.invalidSizes))
-        XCTAssertEqual(state, .failed("At least one AdSize must be provided"))
-    }
-
-    func testNonDisplayAdErrorTransitionsToFailed() {
-        let underlying = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Something else broke"])
-        let state = DisplayAdLoadState.from(result: .failure(underlying))
-        XCTAssertEqual(state, .failed("Something else broke"))
+    func testFailedStatesCompareByMessage() {
+        XCTAssertEqual(AdTagLoadState.failed("boom"), AdTagLoadState.failed("boom"))
+        XCTAssertNotEqual(AdTagLoadState.failed("boom"), AdTagLoadState.failed("other"))
     }
 
     // MARK: - Initialization (compiles + accepts documented parameters)
@@ -65,16 +64,6 @@ final class GistDisplayAdControlTests: XCTestCase {
             passback: {
                 Text("Custom fallback")
             }
-        )
-        XCTAssertNotNil(control)
-    }
-
-    func testInitWithContext() {
-        let control = GistDisplayAdControl(
-            publisherID: "test-publisher",
-            pageURL: "https://example.com/article",
-            sizes: [.mediumRectangle],
-            context: ["category": "technology", "keywords": ["AI", "ML"]]
         )
         XCTAssertNotNil(control)
     }
@@ -113,42 +102,9 @@ final class GistDisplayAdControlTests: XCTestCase {
         XCTAssertNotEqual(control1.loadKey, control2.loadKey)
     }
 
-    func testLoadKeyChangesWhenContextChanges() {
-        let control1 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], context: ["category": "sports"])
-        let control2 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], context: ["category": "tech"])
-        XCTAssertNotEqual(control1.loadKey, control2.loadKey)
-    }
-
-    func testLoadKeyIsStableForEquivalentContextRegardlessOfKeyOrder() {
-        let control1 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], context: ["category": "sports", "keywords": "nfl"])
-        let control2 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle], context: ["keywords": "nfl", "category": "sports"])
-        XCTAssertEqual(control1.loadKey, control2.loadKey)
-    }
-
     func testLoadKeyIsStableWhenNothingChanges() {
         let control1 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle, .leaderboard])
         let control2 = GistDisplayAdControl(publisherID: "pub", pageURL: "https://example.com/a", sizes: [.mediumRectangle, .leaderboard])
         XCTAssertEqual(control1.loadKey, control2.loadKey)
-    }
-
-    // MARK: - DisplayAPIConstants
-
-    func testDisplayAPIConstantsDefaultBaseURLs() {
-        XCTAssertEqual(
-            DisplayAPIConstants.baseURL(for: .staging),
-            "https://disp-api.staging.prorata.ai"
-        )
-        XCTAssertEqual(
-            DisplayAPIConstants.baseURL(for: .production),
-            "https://disp-api.prorata.ai"
-        )
-        XCTAssertEqual(
-            DisplayAPIConstants.baseURL(for: .integration),
-            "https://prtadsdisplayapi-integration.up.railway.app"
-        )
-    }
-
-    func testDisplayAPIConstantsDecisionEndpointPath() {
-        XCTAssertEqual(DisplayAPIConstants.decisionEndpoint, "/decision")
     }
 }

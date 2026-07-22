@@ -8,7 +8,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.gist.ads.example.BuildConfig
 import com.gist.ads.example.Config
 import com.gist.ads.example.ui.*
 import com.gist.ads.sdk.models.AdType
@@ -21,8 +20,6 @@ import com.gist.ads.sdk.ui.GistAdControl
 fun FilterExampleScreen() {
     var selectedQuery by remember { mutableStateOf(Config.SAMPLE_QUERIES[0]) }
     var selectedGeo by remember { mutableStateOf(Config.DEFAULT_GEO) }
-    var selectedApiVersion by remember { mutableStateOf(Config.DEFAULT_API_VERSION) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     
     var imageEnabled by remember { mutableStateOf(true) }
     var textImageEnabled by remember { mutableStateOf(true) }
@@ -131,16 +128,6 @@ fun FilterExampleScreen() {
         
         HorizontalDivider()
         
-        // API Version selector
-        SectionTitle("API Version")
-        
-        ApiVersionDropdown(
-            selectedVersion = selectedApiVersion,
-            onVersionSelected = { selectedApiVersion = it }
-        )
-        
-        HorizontalDivider()
-        
         // Ad display
         SectionTitle("Ad Preview")
         
@@ -151,40 +138,15 @@ fun FilterExampleScreen() {
                 query = selectedQuery,
                 geo = selectedGeo,
                 adTypes = adTypes,
-                apiVersion = selectedApiVersion,
-                enableLogging = BuildConfig.DEBUG,
                 onAdLoaded = {
-                    errorMessage = null
                     println("FilterExample: Ad loaded - Query: $selectedQuery, Geo: $selectedGeo")
                 },
                 // onAdClicked removed - ads will automatically open in browser when clicked
                 onContentHeightChanged = { height ->
                     println("FilterExample: Content height - ${height}px")
                 },
-                onError = { exception ->
-                    errorMessage = exception.message
-                    println("FilterExample: Error - ${exception.message}")
-                },
                 theme = "system"
             )
-        }
-        
-        // Show error message if present
-        errorMessage?.let { error ->
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
-            ) {
-                Text(
-                    text = "⚠️ $error",
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
         }
         
         HorizontalDivider()

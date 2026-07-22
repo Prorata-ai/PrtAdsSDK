@@ -24,6 +24,11 @@ import Foundation
     ///   - error: The error that occurred
     @objc optional func adView(_ adView: GistAdView, didFailWithError error: Error)
     
+    /// Called when the ad tag reports no ad is available for this slot
+    /// (no-fill), as opposed to a native-level or WebView load failure.
+    /// - Parameter adView: The ad view that received no fill
+    @objc optional func adViewDidReceiveNoFill(_ adView: GistAdView)
+    
     /// Called when the user clicks an ad link that navigates to an external URL
     /// If this method is not implemented, the URL will be opened in Safari by default.
     /// - Parameters:

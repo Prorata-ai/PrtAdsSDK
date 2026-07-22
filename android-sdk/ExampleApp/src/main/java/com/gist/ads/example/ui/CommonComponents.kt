@@ -7,40 +7,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.gist.ads.example.Config
+import com.gist.ads.sdk.models.AdSize
 
 /**
- * Reusable dropdown for API version selection
+ * Reusable dropdown for ad size selection
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ApiVersionDropdown(
-    selectedVersion: String,
-    onVersionSelected: (String) -> Unit,
+fun AdSizeDropdown(
+    selectedSize: AdSize,
+    onSizeSelected: (AdSize) -> Unit,
+    sizes: List<AdSize> = AdSize.values().toList(),
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
-    
+
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded }
     ) {
         OutlinedTextField(
-            value = Config.AVAILABLE_API_VERSIONS.find { it.first == selectedVersion }?.second ?: selectedVersion,
+            value = selectedSize.displayName,
             onValueChange = {},
             readOnly = true,
-            label = { Text("API Version") },
+            label = { Text("Ad Size") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
         )
-        
+
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            Config.AVAILABLE_API_VERSIONS.forEach { (version, label) ->
+            sizes.forEach { size ->
                 DropdownMenuItem(
-                    text = { Text(label) },
+                    text = { Text(size.displayName) },
                     onClick = {
-                        onVersionSelected(version)
+                        onSizeSelected(size)
                         expanded = false
                     }
                 )

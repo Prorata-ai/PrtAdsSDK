@@ -2,9 +2,18 @@
 //  GistDisplayAdControl.swift
 //  GistAdsSDK
 //
-//  Main ad control for displaying Gist contextual display ads: image/text/
-//  CTA ads targeted by publisher ID + page URL + size, mirroring the web
-//  tag's `defineSlot({id, url}, slotId, sizes)` -> `displayAd(slotId)` flow.
+//  Main ad control for displaying Gist contextual display ads: embeds the
+//  real `adtag.js` script in a WebView and drives it via
+//  `defineSlot({id, url}, slotId, sizes)` -> `displayAd(slotId)`, mirroring
+//  exactly how a publisher's own webpage would embed the tag directly.
+//
+//  This control is a thin wrapper around that HTML/JS embed: it makes no
+//  API calls of its own. `adtag.js` owns the entire ad request, response
+//  parsing, and rendering, so as the tag and backend evolve, this control
+//  keeps working without needing to track along. (An earlier revision
+//  fetched ads natively to support a `context` targeting param that
+//  `adtag.js`'s own request has no field for; that param has been removed
+//  so this control can stay a pure embed -- see PR #7 review discussion.)
 //
 
 import SwiftUI
@@ -13,40 +22,16 @@ import SwiftUI
 ///
 /// Unlike `GistAdControl` (search ads, gated by a secret publisher key),
 /// display ads are targeted purely by publisher ID + page URL + size, and
-/// the backend does not require a publisher key -- see the contract notes
-/// at the top of `DisplayAdAPIService.swift`.
+/// the backend does not require a publisher key.
 public struct GistDisplayAdControl: View {
-
-    /// Environment configuration for the Display Ad API endpoint.
-    public enum APIEnvironment: Hashable {
-        case staging
-        case integration
-        case production
-
-        /// Base URL for the environment (internal)
-        /// Can be overridden via environment variables: GIST_ADS_DISPLAY_STAGING_URL,
-        /// GIST_ADS_DISPLAY_INTEGRATION_URL, GIST_ADS_DISPLAY_PRODUCTION_URL
-        internal var baseURL: String {
-            DisplayAPIConstants.baseURL(for: self)
-        }
-    }
 
     // MARK: - Configuration Properties
 
     private let publisherID: String
     private let pageURL: String
     private let sizes: [AdSize]
-    private let environment: APIEnvironment
+    private let environment: GistAdControl.APIEnvironment
     private let theme: String
-
-    /// Optional publisher-provided key-value data (e.g. `["category": "sports",
-    /// "keywords": ["nfl", "playoffs"]]`) sent to the backend for LLM context.
-    ///
-    /// `pageURL` alone works well for a real webpage, which the backend can
-    /// crawl to infer relevance. A native screen has no crawlable HTML, so
-    /// `context` is the way to hand over that signal explicitly instead --
-    /// see the contract notes at the top of `DisplayAdAPIService.swift`.
-    private let context: [String: Any]?
 
     // MARK: - Callbacks
 
@@ -68,10 +53,25 @@ public struct GistDisplayAdControl: View {
 
     // MARK: - State
 
-    @State private var state: DisplayAdLoadState = .loading
+    private struct DisplayAdSlotLoad: Equatable {
+        let slotID: String
+        let html: String
+    }
+
+    @State private var state: AdTagLoadState = .loading
+    @State private var currentSlot: DisplayAdSlotLoad?
     @Environment(\.colorScheme) var colorScheme: ColorScheme
 
-    private let apiService: DisplayAdAPIService
+    /// URL of the `adtag.js` bundle to embed for this environment. Reuses
+    /// the same host (and override env vars) as search ads' iframe base
+    /// URL, since `adtag.js` is one bundle serving both ad types
+    /// (distinguished by whether `api_key` is passed to `defineSlot`). Also
+    /// used as the WebView's `baseURL` for `loadHTMLString`, which is why
+    /// this host must stay in `APIConstants.allowedAdDomains`.
+    private var adTagScriptURL: String {
+        let base = APIConstants.iframeBaseURL(for: environment)
+        return base.replacingOccurrences(of: "/$", with: "", options: .regularExpression) + "/adtag.js"
+    }
 
     // MARK: - Initialization
 
@@ -82,9 +82,6 @@ public struct GistDisplayAdControl: View {
     ///   - sizes: One or more supported ad sizes (mirrors `sizes` in `defineSlot`)
     ///   - environment: API environment (defaults to production)
     ///   - theme: Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)
-    ///   - context: Optional publisher-provided key-value data (category, keywords, section, etc.)
-    ///     sent to the backend for LLM context -- especially useful for native screens, which have
-    ///     no crawlable HTML for the backend to infer relevance from via `pageURL` alone.
     ///   - onAdLoaded: Optional callback when ad successfully loads
     ///   - onAdClicked: Optional callback when user clicks the ad (defaults to opening in browser)
     ///   - onContentHeightChanged: Optional callback when ad content height is determined
@@ -93,9 +90,8 @@ public struct GistDisplayAdControl: View {
         publisherID: String,
         pageURL: String,
         sizes: [AdSize],
-        environment: APIEnvironment = .production,
+        environment: GistAdControl.APIEnvironment = .production,
         theme: String = "system",
-        context: [String: Any]? = nil,
         onAdLoaded: (() -> Void)? = nil,
         onAdClicked: ((URL) -> Void)? = nil,
         onContentHeightChanged: ((CGFloat) -> Void)? = nil,
@@ -106,12 +102,10 @@ public struct GistDisplayAdControl: View {
         self.sizes = sizes
         self.environment = environment
         self.theme = theme
-        self.context = context
         self.onAdLoaded = onAdLoaded
         self.onAdClicked = onAdClicked
         self.onContentHeightChanged = onContentHeightChanged
         self.passback = { AnyView(passback()) }
-        self.apiService = DisplayAdAPIService(baseURL: environment.baseURL, publisherID: publisherID)
     }
 
     /// Initialize the Gist display ad control with a built-in "No ad available" fallback.
@@ -121,9 +115,6 @@ public struct GistDisplayAdControl: View {
     ///   - sizes: One or more supported ad sizes (mirrors `sizes` in `defineSlot`)
     ///   - environment: API environment (defaults to production)
     ///   - theme: Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)
-    ///   - context: Optional publisher-provided key-value data (category, keywords, section, etc.)
-    ///     sent to the backend for LLM context -- especially useful for native screens, which have
-    ///     no crawlable HTML for the backend to infer relevance from via `pageURL` alone.
     ///   - onAdLoaded: Optional callback when ad successfully loads
     ///   - onAdClicked: Optional callback when user clicks the ad (defaults to opening in browser)
     ///   - onContentHeightChanged: Optional callback when ad content height is determined
@@ -131,9 +122,8 @@ public struct GistDisplayAdControl: View {
         publisherID: String,
         pageURL: String,
         sizes: [AdSize],
-        environment: APIEnvironment = .production,
+        environment: GistAdControl.APIEnvironment = .production,
         theme: String = "system",
-        context: [String: Any]? = nil,
         onAdLoaded: (() -> Void)? = nil,
         onAdClicked: ((URL) -> Void)? = nil,
         onContentHeightChanged: ((CGFloat) -> Void)? = nil
@@ -144,7 +134,6 @@ public struct GistDisplayAdControl: View {
             sizes: sizes,
             environment: environment,
             theme: theme,
-            context: context,
             onAdLoaded: onAdLoaded,
             onAdClicked: onAdClicked,
             onContentHeightChanged: onContentHeightChanged,
@@ -163,28 +152,47 @@ public struct GistDisplayAdControl: View {
     public var body: some View {
         ZStack {
             switch state {
-            case .loading:
-                ProgressView("Loading ad...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .failed(let message):
-                errorView(message: message)
-            case .loaded(let content):
-                AdWebView(
-                    htmlContent: content,
-                    iframeBaseURL: environment.baseURL,
-                    theme: resolvedTheme,
-                    onAdClicked: onAdClicked,
-                    onContentHeightChanged: onContentHeightChanged
-                )
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: AdViewConstants.configurableMinHeight, maxHeight: AdViewConstants.configurableMaxHeight)
+            case .loading, .loaded:
+                if let currentSlot {
+                    AdTagBridgeWebView(
+                        html: currentSlot.html,
+                        baseURLString: adTagScriptURL,
+                        theme: resolvedTheme,
+                        onAdRendered: { height in
+                            state = .loaded(height: height)
+                            onContentHeightChanged?(CGFloat(height))
+                            onAdLoaded?()
+                        },
+                        onNoFill: {
+                            state = .noFill
+                        },
+                        onLoadFailure: { message in
+                            state = .failed(message)
+                        },
+                        onAdClicked: onAdClicked
+                    )
+                    .id(currentSlot.slotID)
+                    .opacity(isLoaded ? 1 : 0)
+                }
+                if !isLoaded {
+                    ProgressView("Loading ad...")
+                }
             case .noFill:
                 passback()
+            case .failed(let message):
+                errorView(message: message)
             }
         }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: AdViewConstants.configurableMinHeight, maxHeight: AdViewConstants.configurableMaxHeight)
         .task(id: loadKey) {
-            await loadAd()
+            prepareSlot()
         }
+    }
+
+    private var isLoaded: Bool {
+        if case .loaded = state { return true }
+        return false
     }
 
     // MARK: - Views
@@ -204,9 +212,7 @@ public struct GistDisplayAdControl: View {
                 .multilineTextAlignment(.center)
 
             Button("Retry") {
-                Task {
-                    await loadAd()
-                }
+                prepareSlot()
             }
             .buttonStyle(.borderedProminent)
         }
@@ -231,48 +237,46 @@ public struct GistDisplayAdControl: View {
     /// values whenever a caller updates them (e.g. `pageURL` for a new
     /// article in a scrolling feed), but `.task` alone only fires once for
     /// the view's lifetime -- it needs an explicit `id` to react to those
-    /// changes. `context: [String: Any]?` isn't `Hashable`, so this encodes
-    /// it deterministically (`.sortedKeys`) into the key string instead.
+    /// changes.
     var loadKey: String {
-        let contextKey: String
-        if let context, let data = try? JSONSerialization.data(withJSONObject: context, options: [.sortedKeys]) {
-            contextKey = String(data: data, encoding: .utf8) ?? ""
-        } else {
-            contextKey = ""
-        }
-        return [
+        [
             pageURL,
             sizes.map(\.displayName).joined(separator: ","),
             String(describing: environment),
-            resolvedTheme,
-            contextKey
+            resolvedTheme
         ].joined(separator: "|")
     }
 
-    /// Load ad from the Display Ad API
-    private func loadAd() async {
+    /// Prepare (or re-prepare, on retry/param change) the WebView's bootstrap
+    /// HTML: mints a fresh slot id + passback function name and builds the
+    /// bootstrap HTML. This is purely local string generation -- no network
+    /// call is made here or anywhere else in this control; `adtag.js` makes
+    /// its own request once the resulting WebView loads. Mounting that
+    /// WebView and waiting for its bridge signals is what drives `state` to
+    /// `.loaded`/`.noFill` from there.
+    private func prepareSlot() {
+        let slotID = "pr-display-ad-\(UUID().uuidString)"
+        let passbackFunctionName = "prDisplayAdPassback\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
         state = .loading
+        currentSlot = nil
 
-        let result: Result<String, Error>
         do {
-            let content = try await apiService.fetchAd(pageURL: pageURL, sizes: sizes, theme: resolvedTheme, context: context)
-            result = .success(content)
+            let html = try DisplayAdBootstrapHTML.generate(
+                publisherID: publisherID,
+                pageURL: pageURL,
+                sizes: sizes,
+                slotID: slotID,
+                passbackFunctionName: passbackFunctionName,
+                adTagScriptURL: adTagScriptURL
+            )
+            currentSlot = DisplayAdSlotLoad(slotID: slotID, html: html)
         } catch {
-            result = .failure(error)
-        }
-
-        let newState = DisplayAdLoadState.from(result: result)
-
-        await MainActor.run {
-            self.state = newState
-            if case .loaded = newState {
-                self.onAdLoaded?()
-            }
+            state = .failed(error.localizedDescription)
         }
     }
 
     /// Reload the ad with current configuration
     public func reload() async {
-        await loadAd()
+        prepareSlot()
     }
 }

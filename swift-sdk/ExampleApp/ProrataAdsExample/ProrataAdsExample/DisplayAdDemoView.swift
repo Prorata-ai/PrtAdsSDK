@@ -15,36 +15,12 @@ struct DisplayAdDemoView: View {
     private let publisherID = "your-publisher-id"
 
     // Left blank on purpose -- enter the URL of a real, publicly crawlable
-    // page (or a context below) to see a live filled ad. An arbitrary or
-    // empty URL will most likely surface the no-fill passback view below.
+    // page to see a live filled ad. An arbitrary or empty URL will most
+    // likely surface the no-fill passback view below.
     @State private var pageURL = ""
     @State private var selectedSize: AdSize = .mediumRectangle
-    @State private var selectedEnvironment: GistDisplayAdControl.APIEnvironment = .integration
+    @State private var selectedEnvironment: GistAdControl.APIEnvironment = .integration
     @State private var refreshTrigger = UUID()
-
-    // Native screens have no crawlable HTML for the backend to infer
-    // relevance from via `pageURL` alone (unlike a real webpage), so
-    // `context` lets the app hand over that signal explicitly instead --
-    // see the contract notes at the top of DisplayAdAPIService.swift.
-    @State private var contextCategory = ""
-    @State private var contextKeywords = ""
-
-    /// Builds the `context` dictionary sent to `GistDisplayAdControl`, or
-    /// `nil` if the user hasn't entered anything.
-    private var context: [String: Any]? {
-        var result: [String: Any] = [:]
-        if !contextCategory.trimmingCharacters(in: .whitespaces).isEmpty {
-            result["category"] = contextCategory
-        }
-        let keywords = contextKeywords
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        if !keywords.isEmpty {
-            result["keywords"] = keywords
-        }
-        return result.isEmpty ? nil : result
-    }
 
     private let availableSizes: [AdSize] = [
         .leaderboard, .superLeaderboard, .mediumRectangle,
@@ -126,31 +102,14 @@ struct DisplayAdDemoView: View {
                     .foregroundColor(.secondary)
 
                 Picker("Environment", selection: $selectedEnvironment) {
-                    Text("Staging").tag(GistDisplayAdControl.APIEnvironment.staging)
-                    Text("Integration").tag(GistDisplayAdControl.APIEnvironment.integration)
-                    Text("Production").tag(GistDisplayAdControl.APIEnvironment.production)
+                    Text("Staging").tag(GistAdControl.APIEnvironment.staging)
+                    Text("Integration").tag(GistAdControl.APIEnvironment.integration)
+                    Text("Production").tag(GistAdControl.APIEnvironment.production)
                 }
                 .pickerStyle(.segmented)
                 .onChange(of: selectedEnvironment) {
                     refreshTrigger = UUID()
                 }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Context (optional)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                Text("Native screens have no crawlable HTML, so this hands the backend explicit signal instead of relying on Page URL alone.")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-
-                TextField("Category, e.g. \"technology\"", text: $contextCategory)
-                    .textFieldStyle(.roundedBorder)
-                    .autocapitalization(.none)
-
-                TextField("Keywords, comma-separated", text: $contextKeywords)
-                    .textFieldStyle(.roundedBorder)
-                    .autocapitalization(.none)
             }
 
             Button(action: {
@@ -185,7 +144,6 @@ struct DisplayAdDemoView: View {
                 pageURL: pageURL,
                 sizes: [selectedSize],
                 environment: selectedEnvironment,
-                context: context,
                 passback: {
                     VStack(spacing: 8) {
                         Image(systemName: "photo.on.rectangle.angled")

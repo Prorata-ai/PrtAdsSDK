@@ -17,9 +17,14 @@ struct ContentView: View {
     @State private var searchQuery = "best wireless headphones"
     @State private var selectedGeo = "US"
     @State private var selectedAdTypes: Set<AdType> = [.image, .textImage, .text]
-    @State private var selectedApiVersion = APIConstants.apiVersionV2
+    @State private var selectedSize: AdSize = .dynamic
     @State private var selectedTheme = "system"
     @State private var refreshTrigger = UUID()
+
+    private let availableSizes: [AdSize] = [
+        .dynamic, .leaderboard, .superLeaderboard, .mediumRectangle,
+        .mobileBanner, .billboard, .largeRectangle, .skyscraper
+    ]
 
     
     // Computed property to optimize adTypes conversion
@@ -137,18 +142,19 @@ struct ContentView: View {
                 }
             }
             
-            // API Version
+            // Ad Size
             VStack(alignment: .leading, spacing: 8) {
-                Text("API Version")
+                Text("Ad Size")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
-                Picker("API Version", selection: $selectedApiVersion) {
-                    Text("v1").tag(APIConstants.apiVersionV1)
-                    Text("v2").tag(APIConstants.apiVersionV2)
+                Picker("Size", selection: $selectedSize) {
+                    ForEach(availableSizes, id: \.self) { size in
+                        Text(size.displayName).tag(size)
+                    }
                 }
-                .pickerStyle(.segmented)
-                .onChange(of: selectedApiVersion) {
+                .pickerStyle(.menu)
+                .onChange(of: selectedSize) {
                     refreshTrigger = UUID()
                 }
             }
@@ -201,8 +207,8 @@ struct ContentView: View {
                     query: searchQuery,
                     geo: selectedGeo,
                     adTypes: adTypesArray,
+                    sizes: [selectedSize],
                     environment: .production,
-                    apiVersion: selectedApiVersion,
                     theme: selectedTheme
                 )
                 .frame(height: 250)

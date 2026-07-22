@@ -10,44 +10,36 @@ import SwiftUI
 
 /// API-related constants
 public enum APIConstants {
-    // API version constants (public for use in apps)
-    public static let apiVersionV1 = "v1"
-    public static let apiVersionV2 = "v2"
-    
-    static let auctionType = "native"
-    
     // Environment-specific iframe base URLs (can be overridden via environment variables)
     static let stagingIframeBaseURL = "https://tp-at.staging.prorata.ai"
     static let integrationIframeBaseURL = "https://tp-at.integration.prorata.ai"
     static let productionIframeBaseURL = "https://tp-at.prorata.ai"
     
     /// Allowed ad server domains for URL filtering (used in click handling).
-    /// Derived from iframe base URLs, including any environment variable
-    /// overrides, PLUS the Display Ad API's own base domains.
+    /// Derived from the iframe/ad-tag-script base URLs, including any
+    /// environment variable overrides.
     ///
-    /// The Display Ad API domains are included here because `AdWebView` is
-    /// shared between search ads (rendered via `<iframe src="...">`) and
-    /// display ads (rendered via `webView.loadHTMLString(_:baseURL:)`).
-    /// `loadHTMLString(_:baseURL:)` itself triggers exactly one synthetic
-    /// `decidePolicyForNavigationAction` call with `url == baseURL` (not a
-    /// real network request -- WebKit reports the load's origin-setup this
-    /// way). If that base host isn't allowlisted, this delegate cancels its
-    /// own page load and immediately kicks the user out to Safari with the
-    /// bare base URL, on every single ad load, with no tap required. Adding
-    /// these domains here fixes that for display ads while remaining a
-    /// no-op for search ads (which never navigate to these hosts anyway).
+    /// `AdTagBridgeWebView` (used by both search and display ads, which
+    /// embed `adtag.js` from this same host) uses
+    /// `webView.loadHTMLString(_:baseURL:)`. That call triggers exactly one
+    /// synthetic `decidePolicyForNavigationAction` call with
+    /// `url == baseURL` (not a real network request -- WebKit reports the
+    /// load's origin-setup this way). If that base host isn't allowlisted,
+    /// the navigation delegate cancels its own page load and immediately
+    /// kicks the user out to Safari with the bare base URL, on every single
+    /// ad load, with no tap required.
+    ///
+    /// NOTE: neither the Display Ad API (`disp-api.*`) nor the Search API
+    /// (`tp-srch-api.*`) REST hosts need to be listed here -- neither ad type
+    /// navigates the WebView there, or calls it from native code at all;
+    /// `adtag.js` hits them on its own via a background JSONP request from
+    /// the ad-tag-script host below.
     static var allowedAdDomains: [String] {
-        let staticDomains = [
-            stagingIframeBaseURL, integrationIframeBaseURL, productionIframeBaseURL,
-            DisplayAPIConstants.stagingBaseURL, DisplayAPIConstants.integrationBaseURL, DisplayAPIConstants.productionBaseURL
-        ]
+        let staticDomains = [stagingIframeBaseURL, integrationIframeBaseURL, productionIframeBaseURL]
         let dynamicDomains = [
             iframeBaseURL(for: .staging),
             iframeBaseURL(for: .integration),
-            iframeBaseURL(for: .production),
-            DisplayAPIConstants.baseURL(for: .staging),
-            DisplayAPIConstants.baseURL(for: .integration),
-            DisplayAPIConstants.baseURL(for: .production)
+            iframeBaseURL(for: .production)
         ]
         return Array(Set(staticDomains + dynamicDomains))
             .compactMap { URL(string: $0)?.host }
@@ -59,48 +51,6 @@ public enum APIConstants {
     static func isAllowedAdDomain(_ url: URL) -> Bool {
         guard let host = url.host else { return false }
         return allowedAdDomains.contains(host)
-    }
-    
-    /// Get API version from environment variable, defaults to v2
-    /// Environment variable: GIST_ADS_API_VERSION
-    /// - Returns: API version string (e.g., "v1", "v2", "v3")
-    public static func apiVersion() -> String {
-        return ProcessInfo.processInfo.environment["GIST_ADS_API_VERSION"] ?? apiVersionV2
-    }
-    
-    /// Get search endpoint for a given API version
-    /// - Parameter version: API version string (e.g., "v1", "v2", "v3")
-    /// - Returns: Endpoint path (e.g., "/v1/search", "/v2/search")
-    static func searchEndpoint(for version: String) -> String {
-        return "/\(version)/search"
-    }
-    
-    // Environment-specific base URLs (can be overridden via environment variables)
-    static let stagingBaseURL = "https://tp-srch-api.staging.prorata.ai"
-    static let integrationBaseURL = "https://tp-srch-api.integration.prorata.ai"
-    static let productionBaseURL = "https://tp-srch-api.gist.ai"
-    
-    /// Get base URL for environment, checking environment variables first
-    /// - Parameter environment: The environment to get the base URL for
-    /// - Returns: Base URL from environment variable if set, otherwise the default constant
-    static func baseURL(for environment: GistAdControl.APIEnvironment) -> String {
-        let envKey: String
-        let defaultValue: String
-        
-        switch environment {
-        case .staging:
-            envKey = "GIST_ADS_STAGING_URL"
-            defaultValue = stagingBaseURL
-        case .integration:
-            envKey = "GIST_ADS_INTEGRATION_URL"
-            defaultValue = integrationBaseURL
-        case .production:
-            envKey = "GIST_ADS_PRODUCTION_URL"
-            defaultValue = productionBaseURL
-        }
-        
-        // Check environment variable first, fall back to constant
-        return ProcessInfo.processInfo.environment[envKey] ?? defaultValue
     }
     
     /// Get iframe base URL for environment, checking environment variables first
@@ -123,46 +73,6 @@ public enum APIConstants {
         }
         
         // Check environment variable first, fall back to constant
-        return ProcessInfo.processInfo.environment[envKey] ?? defaultValue
-    }
-}
-
-/// API-related constants for the Display Ad API (`/decision`).
-///
-/// The display API lives on a separate host from the search API -- see the
-/// contract notes at the top of `DisplayAdAPIService.swift` for how these
-/// were discovered.
-public enum DisplayAPIConstants {
-    static let decisionEndpoint = "/decision"
-
-    // Environment-specific base URLs (can be overridden via environment variables)
-    static let stagingBaseURL = "https://disp-api.staging.prorata.ai"
-    // NOTE: Integration currently points at temporary Railway infra rather
-    // than the `disp-api.integration.prorata.ai` pattern used by staging and
-    // production. This is expected to change -- override via
-    // GIST_ADS_DISPLAY_INTEGRATION_URL if/when it migrates.
-    static let integrationBaseURL = "https://prtadsdisplayapi-integration.up.railway.app"
-    static let productionBaseURL = "https://disp-api.prorata.ai"
-
-    /// Get base URL for environment, checking environment variables first
-    /// - Parameter environment: The environment to get the base URL for
-    /// - Returns: Base URL from environment variable if set, otherwise the default constant
-    static func baseURL(for environment: GistDisplayAdControl.APIEnvironment) -> String {
-        let envKey: String
-        let defaultValue: String
-
-        switch environment {
-        case .staging:
-            envKey = "GIST_ADS_DISPLAY_STAGING_URL"
-            defaultValue = stagingBaseURL
-        case .integration:
-            envKey = "GIST_ADS_DISPLAY_INTEGRATION_URL"
-            defaultValue = integrationBaseURL
-        case .production:
-            envKey = "GIST_ADS_DISPLAY_PRODUCTION_URL"
-            defaultValue = productionBaseURL
-        }
-
         return ProcessInfo.processInfo.environment[envKey] ?? defaultValue
     }
 }

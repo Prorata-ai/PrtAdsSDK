@@ -10,7 +10,7 @@ The example app showcases:
 - 🔍 Dynamic search with real-time ad updates and debouncing
 - 🎛️ Ad type filtering (Image, Text/Image, Text)
 - 🌍 Geographic targeting across multiple regions
-- 🔄 API version switching (V1 and V2)
+- 📐 Ad size selection (IAB sizes and dynamic layout)
 - 📢 Event callbacks (onAdLoaded, onContentHeightChanged)
 - ⚙️ Configuration and settings display
 
@@ -54,7 +54,6 @@ object Config {
 - **Purpose**: Demonstrates simple ad integration
 - **Features**:
   - Query selection from predefined list
-  - API version switcher (V1/V2)
   - Event callback demonstration
   - Real-time event tracking (ad loads, content height)
   - Configuration display card
@@ -66,7 +65,6 @@ GistAdControl(
     publisherId = Config.PUBLISHER_ID,
     publisherKey = Config.PUBLISHER_KEY,
     query = selectedQuery,
-    apiVersion = selectedApiVersion,
     onAdLoaded = { adLoadedCount++ },
     onContentHeightChanged = { height -> contentHeight = height }
 )
@@ -79,7 +77,6 @@ GistAdControl(
   - Real-time search text field
   - 500ms debounced input
   - Search suggestion chips
-  - API version selection
   - Live ad updates as you type
 
 **Key Code:**
@@ -105,7 +102,6 @@ if (debouncedQuery.isNotBlank()) {
   - Ad type toggles (Image, Text/Image, Text)
   - Geographic region selector (8 countries)
   - Query selection
-  - API version switcher
   - Live configuration preview
   - Warning when no ad types selected
 
@@ -130,7 +126,7 @@ GistAdControl(
 - **Purpose**: Display SDK configuration and info
 - **Features**:
   - SDK version information
-  - App configuration display (API version, environment)
+  - App configuration display (environment)
   - Feature list
   - Documentation links
   - About information
@@ -139,7 +135,7 @@ GistAdControl(
 
 The app includes several reusable UI components to reduce code duplication:
 
-- **`ApiVersionDropdown`** - Dropdown for API version selection
+- **`AdSizeDropdown`** - Dropdown for ad size selection
 - **`QueryDropdown`** - Dropdown for predefined query selection
 - **`GeoDropdown`** - Dropdown for geographic region selection
 - **`SectionTitle`** - Consistent section headers
@@ -224,14 +220,16 @@ GistAdControl(
 )
 ```
 
-### 5. API Version Switching
+### 5. Ad Size Selection
 
 ```kotlin
-var selectedApiVersion by remember { mutableStateOf("v2") }
+import com.gist.ads.sdk.models.AdSize
+
+var selectedSize by remember { mutableStateOf(AdSize.DYNAMIC) }
 
 GistAdControl(
     ...,
-    apiVersion = selectedApiVersion  // "v1" or "v2"
+    sizes = listOf(selectedSize)
 )
 ```
 
@@ -252,15 +250,6 @@ GistAdControl(
         println("📏 Content height: ${height}px")
     }
     // Note: onAdClicked not provided - ads open in browser automatically
-)
-```
-
-### 7. Debug Logging
-
-```kotlin
-GistAdControl(
-    ...,
-    enableLogging = BuildConfig.DEBUG // Enable in debug builds only
 )
 ```
 
@@ -322,9 +311,8 @@ Toggle these on/off in the **Filters** tab to see how different combinations wor
 
 1. Open the **Basic** tab (first icon in bottom navigation)
 2. Select different queries from the dropdown
-3. Switch between V1 and V2 API versions
-4. Observe ad loading and display
-5. Check the Event Callbacks card for:
+3. Observe ad loading and display
+4. Check the Event Callbacks card for:
    - "Ads Loaded" count (increments each time)
    - "Content Height" measurement
    - "Ad Clicks" status
@@ -332,12 +320,11 @@ Toggle these on/off in the **Filters** tab to see how different combinations wor
 ### 2. Test Dynamic Search
 
 1. Open the **Search** tab (second icon - magnifying glass)
-2. Select an API version (V1 or V2)
-3. Type in the search field (e.g., "headphones")
-4. Notice the 500ms debounce delay
+2. Type in the search field (e.g., "headphones")
+3. Notice the 500ms debounce delay
    - Ad updates only after you stop typing for 500ms
-5. Try the suggestion chips at the bottom
-6. Clear the search to see the placeholder again
+4. Try the suggestion chips at the bottom
+5. Clear the search to see the placeholder again
 
 ### 3. Test Filtering
 
@@ -347,16 +334,15 @@ Toggle these on/off in the **Filters** tab to see how different combinations wor
    - Turn off all types → see warning message
    - Enable different combinations
 4. Change geographic region
-5. Switch API versions
-6. Observe how filters affect the ad results
-7. Check the configuration card at the bottom
+5. Observe how filters affect the ad results
+6. Check the configuration card at the bottom
 
 ### 4. View SDK Info
 
 1. Open the **Settings** tab (fourth icon - gear)
 2. Review:
-   - SDK version (1.0.0)
-   - API configuration (version, environment)
+   - SDK version
+   - API configuration (environment)
    - Feature list
    - About information
 
@@ -380,23 +366,15 @@ Toggle these on/off in the **Filters** tab to see how different combinations wor
 
 2. **Verify internet connection** - Ensure device/emulator has connectivity
 
-3. **Enable debug logging** and check logcat:
-
-   ```kotlin
-   GistAdControl(..., enableLogging = BuildConfig.DEBUG)
-   ```
-
-4. **Check logcat output**:
+3. **Check logcat output** - `adtag.js` makes its own request from inside the WebView, so use Chrome remote debugging (`chrome://inspect`) or logcat for WebView console errors:
 
    ```bash
-   adb logcat | grep -E "GistAds|BasicExample|SearchExample|FilterExample"
+   adb logcat | grep -E "GistAds|BasicExample|SearchExample|FilterExample|chromium"
    ```
 
-5. **Ensure query is not empty** - Type something in search fields
+4. **Ensure query is not empty** - Type something in search fields
 
-6. **Try different API versions** - Switch between V1 and V2
-
-7. **Check ad types** - In Filters screen, ensure at least one type is enabled
+5. **Check ad types** - In Filters screen, ensure at least one type is enabled
 
 ### Build Errors
 
@@ -469,8 +447,7 @@ If issues persist:
 ### Performance Issues
 
 1. **Debounce is working** - Search has 500ms delay (intentional)
-2. **Reduce logging** - Set `enableLogging = false` for production
-3. **Use release build** for testing performance:
+2. **Use release build** for testing performance:
 
    ```bash
    ./gradlew :ExampleApp:assembleRelease
@@ -554,8 +531,7 @@ adb logcat -d | grep "GistAds" | tail -50
 6. **UI/UX** - Material Design 3 components throughout
 7. **Navigation** - Bottom navigation with proper state handling
 8. **Code Reusability** - Common components in `CommonComponents.kt`
-9. **Debug Logging** - Conditional logging with `BuildConfig.DEBUG`
-10. **Event Tracking** - Callbacks for ad lifecycle events
+9. **Event Tracking** - Callbacks for ad lifecycle events
 
 ## Additional Resources
 

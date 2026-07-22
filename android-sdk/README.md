@@ -10,11 +10,10 @@ A native Android SDK for integrating Gist AI Search Ads into your Android applic
 - 🌐 **WebView Rendering** - Uses Android WebView for secure ad display
 - 🔒 **Type Safe** - Fully typed Kotlin API with compile-time safety
 - 📱 **Modern Android** - Supports Android 7.0+ (API 24+)
-- 🔄 **API Versioning** - Support for V1 and V2 API endpoints
 - 🌍 **Multi-Environment** - Staging, Integration, and Production environments
 - 📢 **Event Callbacks** - Track ad loads, clicks, and content height changes
 - 🎯 **Three Ad Types** - Image, Text/Image, and Text ads
-- 🖼️ **Display Ads** - Contextual display ads targeted by publisher ID + page URL + size, with first-party context targeting for native screens
+- 🖼️ **Display Ads** - Contextual display ads targeted by publisher ID + page URL + size, embedding the real `adtag.js` script directly
 
 ## Installation
 
@@ -48,7 +47,7 @@ JitPack builds directly from GitHub, no manual publishing required!
 
    ```kotlin
    dependencies {
-       implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.2")
+       implementation("com.github.Prorata-ai:PrtAdsSDK:1.0.4")
    }
    ```
 
@@ -56,13 +55,13 @@ JitPack builds directly from GitHub, no manual publishing required!
 
 **Version Options:**
 
-- `1.0.2` - Specific release version (recommended)
+- `1.0.4` - Specific release version (recommended)
 - `main-SNAPSHOT` - Latest development version
 - `abc1234` - Specific commit hash
 
 **Notes:**
 
-- Replace `1.0.2` with the desired version tag from [GitHub Releases](https://github.com/Prorata-ai/PrtAdsSDK/releases)
+- Replace `1.0.4` with the desired version tag from [GitHub Releases](https://github.com/Prorata-ai/PrtAdsSDK/releases)
 - JitPack automatically builds the SDK on first request (may take 1-2 minutes)
 - View build status: <https://jitpack.io/#Prorata-ai/PrtAdsSDK>
 
@@ -72,7 +71,7 @@ Once published to Maven Central, installation will be even simpler:
 
 ```kotlin
 dependencies {
-    implementation("com.gist.ads:sdk:1.0.2")
+    implementation("com.gist.ads:sdk:1.0.4")
 }
 ```
 
@@ -129,15 +128,18 @@ fun MyScreen() {
 }
 ```
 
-### With API Version Selection
+### With Ad Sizes
+
+Like display ads, search ads are rendered by `adtag.js` into a slot sized from an `AdSize` list (mirrors `sizes` in `defineSlot`). Defaults to `listOf(AdSize.DYNAMIC)` (fluid layout, no fixed dimensions) if omitted:
 
 ```kotlin
+import com.gist.ads.sdk.models.AdSize
+
 GistAdControl(
     publisherId = "your-publisher-id",
     publisherKey = "your-publisher-key",
-    query = "best wireless headphones",
-    geo = "US",
-    apiVersion = "v2"  // or "v1"
+    query = "running shoes",
+    sizes = listOf(AdSize.MEDIUM_RECTANGLE, AdSize.LEADERBOARD)
 )
 ```
 
@@ -187,16 +189,16 @@ GistAdControl(
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `geo` | `String` | `"US"` | Geographic location code (e.g., "US", "GB", "CA") |
+| `answer` | `String?` | `null` | Optional answer text (mirrors `slot.defineAnswer(...)`) |
 | `adTypes` | `List<AdType>?` | `null` | List of ad types to filter (null = all types) |
-| `modifier` | `Modifier` | `Modifier` | Compose modifier for styling |
-| `enableLogging` | `Boolean` | `false` | Enable API request/response logging |
+| `sizes` | `List<AdSize>` | `listOf(AdSize.DYNAMIC)` | One or more supported ad sizes (mirrors `sizes` in `defineSlot`) |
 | `environment` | `APIConstants.Environment` | `PRODUCTION` | API environment (STAGING, INTEGRATION, PRODUCTION) |
-| `apiVersion` | `String` | `"v2"` | API version to use ("v1" or "v2") |
-| `customBaseUrl` | `String?` | `null` | Override base URL for API requests |
-| `customIframeUrl` | `String?` | `null` | Override iframe base URL |
+| `modifier` | `Modifier` | `Modifier` | Compose modifier for styling |
+| `theme` | `String` | `"system"` | Theme preference - "light", "dark", or "system" |
 | `onAdLoaded` | `(() -> Unit)?` | `null` | Callback when ad successfully loads |
 | `onAdClicked` | `((String) -> Unit)?` | `null` | Callback when user clicks ad (if null, opens in browser) |
 | `onContentHeightChanged` | `((Float) -> Unit)?` | `null` | Callback when ad content height changes |
+| `passback` | `(@Composable () -> Unit)?` | `null` | Composable shown when no ad is available (no-fill), mirroring the web tag's `definePassbackFunction`. Defaults to a simple "No ad available" text when not provided |
 
 ## Ad Types
 
@@ -219,6 +221,14 @@ GistAdControl(..., adTypes = listOf(AdType.IMAGE, AdType.TEXT_IMAGE))
 // All three types explicitly
 GistAdControl(..., adTypes = listOf(AdType.IMAGE, AdType.TEXT_IMAGE, AdType.TEXT))
 ```
+
+### How Search Ads Are Rendered
+
+Like `GistDisplayAdControl`, `GistAdControl` is a thin wrapper around embedding the real production `adtag.js` script in a `WebView`: it builds a small bootstrap HTML document that calls `defineSlot({ id, api_key, geo }, slotId, sizes, adTypes)` -> `slot.definePrompt(query)` -> `displayAd(slotId)`, exactly mirroring how a publisher's own webpage would embed the tag directly for search, and loads that into the `WebView`. The SDK makes no API calls of its own -- `adtag.js` makes its own JSONP request to the Search API and renders the result directly into the slot's DOM (no iframe), so as the tag and backend evolve, this control keeps working without needing to track along.
+
+**Security note:** unlike display ads, search ads are gated by a secret `publisherKey`. Because `adtag.js` makes its own request from inside the `WebView`, `publisherKey` becomes visible in the loaded HTML/JS source and is sent as a public `publisher_key` query parameter -- the same exposure a publisher already accepts by embedding the JS tag on a public webpage. Native apps lose the extra protection of keeping the key server-side/header-only, which the SDK had before this change.
+
+(An earlier revision called the Search API natively via `AdAPIService` and rendered the response's `iframeUrl` in an `AdWebView`, and supported an `apiVersion` parameter to select between the v1/v2 request body shapes. Both have been removed: `adtag.js`'s own request is hardcoded to the v2 shape, so there is no version to select once the SDK is a pure embed.)
 
 ## Display Ads
 
@@ -248,9 +258,8 @@ GistDisplayAdControl(
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `environment` | `DisplayAPIConstants.Environment` | `PRODUCTION` | API environment (STAGING, INTEGRATION, PRODUCTION) |
+| `environment` | `APIConstants.Environment` | `PRODUCTION` | API environment (STAGING, INTEGRATION, PRODUCTION) -- same type used by search ads |
 | `theme` | `String` | `"system"` | Theme preference - "light", "dark", or "system" |
-| `context` | `Map<String, Any>?` | `null` | Publisher-provided key-value data for LLM context -- see [Contextual Targeting](#contextual-targeting) below |
 | `modifier` | `Modifier` | `Modifier` | Compose modifier for styling |
 | `onAdLoaded` | `(() -> Unit)?` | `null` | Callback when ad successfully loads |
 | `onAdClicked` | `((String) -> Unit)?` | `null` | Callback when user clicks ad (if null, opens in browser) |
@@ -285,74 +294,17 @@ GistDisplayAdControl(
 )
 ```
 
-### Contextual Targeting
+> **Note:** display ads are targeted by `pageUrl` alone, which the backend crawls to infer relevance the same way it would for a real webpage. There is currently no way to supply additional targeting signal for screens with no crawlable URL (e.g. a purely native screen) -- see "How Display Ads Are Rendered" below for why.
 
-`pageUrl` alone works well for a real webpage, which the backend can crawl to infer relevance. A native screen has no crawlable HTML, so `context` is the way to hand over that signal explicitly instead:
+### How Display Ads Are Rendered
 
-```kotlin
-GistDisplayAdControl(
-    publisherId = "pub-12345",
-    pageUrl = "https://example.com/articles/ai-trends",
-    sizes = listOf(AdSize.MEDIUM_RECTANGLE),
-    context = mapOf(
-        "category" to "technology",
-        "keywords" to listOf("AI", "machine learning")
-    )
-)
-```
+`GistDisplayAdControl` is a thin wrapper around embedding the real production `adtag.js` script in an Android `WebView`: it builds a small bootstrap HTML document that calls `defineSlot({ id, url }, slotId, sizes)` -> `displayAd(slotId)`, exactly mirroring how a publisher's own webpage would embed the tag directly, and loads that into the `WebView`. The SDK makes no API calls of its own -- `adtag.js` owns the entire ad request, response parsing, and rendering, the same as it would on a real webpage, so as the tag and backend evolve, this control keeps working without needing to track along. Bridge callbacks (`adRendered`/passback, via `@JavascriptInterface`) report the result back to `GistDisplayAdControl`'s Compose state, and the tag's `target="_blank"` ad links are intercepted via `WebChromeClient.onCreateWindow` out of the box.
 
-`context` accepts any JSON-serializable map (`String`, `Number`, `Boolean`, `List`, or nested `Map` values). It's optional -- omit it (or leave it `null`) to rely on `pageUrl` alone.
+(An earlier revision fetched ads natively to support a `context` targeting parameter for screens with no crawlable URL. That was removed: `adtag.js`'s own request has no field for arbitrary targeting data, so supporting it required a native-fetch special case that defeated the purpose of embedding the tag. If your app needs contextual targeting for native screens, please reach out -- this is being tracked as a follow-up.)
 
-## API Versioning
+The `adtag.js` bundle loaded for each environment reuses the same host (and system-property overrides) as search ads' iframe base URL, since it's one bundle serving both ad types -- see [Environment Configuration](#environment-configuration) below.
 
-The SDK supports multiple API versions with different request/response formats:
-
-### V2 (Default - Recommended)
-
-```kotlin
-GistAdControl(
-    publisherId = "your-publisher-id",
-    publisherKey = "your-publisher-key",
-    query = "wireless headphones",
-    apiVersion = "v2"  // Default, can be omitted
-)
-```
-
-**V2 Request Format:**
-
-```json
-{
-  "prompt": "search query",
-  "answer": "search query",
-  "geo": "US",
-  "auction_type": "native",
-  "ad_type": ["image", "text/image", "text"]
-}
-```
-
-### V1 (Legacy Support)
-
-```kotlin
-GistAdControl(
-    publisherId = "your-publisher-id",
-    publisherKey = "your-publisher-key",
-    query = "wireless headphones",
-    apiVersion = "v1"
-)
-```
-
-**V1 Request Format:**
-
-```json
-{
-  "text": "search query",
-  "geo": "US",
-  "auction_type": "native",
-  "ad_type": ["image", "text/image", "text"]
-}
-```
-
-### Environment Configuration
+## Environment Configuration
 
 The SDK supports three environments for different development stages:
 
@@ -378,27 +330,14 @@ GistAdControl(
 )
 ```
 
-### Overriding Base URLs
+### Overriding the Ad Tag Script Host
 
-You can override default URLs using system properties or custom parameters:
-
-**System Properties (set at app startup):**
+You can override the `adtag.js` script host per environment using system properties, which is useful for testing against staging/integration ad tag servers. This is shared by both search and display ads (`adtag.js` is one bundle serving both, distinguished by whether `api_key` is passed to `defineSlot`):
 
 ```kotlin
-System.setProperty("gist.ads.staging.url", "https://custom-staging.example.com")
-System.setProperty("gist.ads.integration.url", "https://custom-integration.example.com")
-System.setProperty("gist.ads.production.url", "https://custom-production.example.com")
-System.setProperty("gist.ads.api.version", "v1")  // Override default version
-```
-
-**Custom Parameters (per ad control):**
-
-```kotlin
-GistAdControl(
-    ...,
-    customBaseUrl = "https://custom-api.example.com",
-    customIframeUrl = "https://custom-iframe.example.com"
-)
+System.setProperty("gist.ads.staging.iframe.url", "https://custom-staging.example.com")
+System.setProperty("gist.ads.integration.iframe.url", "https://custom-integration.example.com")
+System.setProperty("gist.ads.production.iframe.url", "https://custom-production.example.com")
 ```
 
 ## Event Callbacks
@@ -597,36 +536,6 @@ GistAdControl(
 )
 ```
 
-### Enable Debugging
-
-```kotlin
-GistAdControl(
-    ...,
-    enableLogging = true  // Enables HTTP request/response logging
-)
-```
-
-## API Integration
-
-The SDK communicates with the Gist Ads API automatically. The API endpoint is managed internally by the SDK.
-
-### Request Format
-
-```json
-{
-  "text": "search query",
-  "geo": "US",
-  "auction_type": "native",
-  "ad_type": ["image", "image/text"]
-}
-```
-
-### Headers
-
-- `Publisher-ID` - Authentication
-- `Publisher-Key` - Authorization
-- `Content-Type` - application/json
-
 ## Requirements
 
 - Android 7.0+ (API level 24+)
@@ -641,31 +550,20 @@ The SDK is organized into several components:
 ### Models
 
 - `AdType` - Enum for supported ad types (IMAGE, TEXT_IMAGE, TEXT)
-- `SearchRequest` - API request models (V1 and V2 variants)
-- `SearchResponse` - API response model
-- `AdSize` - Enum for supported display ad sizes (leaderboard, medium rectangle, dynamic, etc.)
-- `DisplayAdResponse` / `DisplayAdItem` - Display Ad API response models (handles both flat and `selection`-wrapped shapes)
-- `DisplayAdLoadState` - Pure state-derivation logic for `GistDisplayAdControl`, kept Compose-independent for unit testability
-
-### Services
-
-- `AdAPIService` - Handles search ad API communication with OkHttp
-- `AdAPIException` - Error types for search ad API operations
-- `DisplayAdAPIService` - Handles display ad API communication with OkHttp
-- `DisplayAdAPIException` - Error types for display ad API operations
+- `AdSize` - Enum for supported ad sizes (leaderboard, medium rectangle, dynamic, etc.), shared by search and display ads
+- `AdTagLoadState` - Event-derived load state shared by `GistDisplayAdControl` and `GistAdControl` (`Loading`/`Loaded`/`NoFill`/`Failed`)
 
 ### UI Components
 
 - `GistAdControl` - Main public Composable for search ads
 - `GistDisplayAdControl` - Main public Composable for display ads
-- `AdWebView` - Internal WebView wrapper for rendering (shared by both)
+- `AdTagBridgeWebView` - Internal WebView wrapper that embeds the real `adtag.js` script, shared by both search and display ads
 
 ### Utilities
 
-- `IframeHTMLGenerator` - Generates HTML for search ad iframes
-- `DisplayAdHTMLGenerator` - Generates HTML for display ads from raw ad fields
-- `APIConstants` - Centralized search API configuration
-- `DisplayAPIConstants` - Centralized display API configuration
+- `SearchAdBootstrapHTML` - Builds the bootstrap HTML that loads `adtag.js` and drives `defineSlot`/`definePrompt`/`displayAd` for search ads
+- `DisplayAdBootstrapHTML` - Builds the bootstrap HTML that loads `adtag.js` and drives `defineSlot`/`displayAd` for display ads
+- `APIConstants` - Centralized ad-tag-script host configuration for both search and display ads
 
 ## Permissions
 
@@ -707,16 +605,7 @@ The SDK requires the following permissions (automatically included):
    }
    ```
 
-4. **Enable Debug Logging** - Use `enableLogging = BuildConfig.DEBUG` to see API details in development
-
-   ```kotlin
-   GistAdControl(
-       ...,
-       enableLogging = BuildConfig.DEBUG  // Only logs in debug builds
-   )
-   ```
-
-5. **Responsive Heights** - Set appropriate heights based on ad type and screen size
+4. **Responsive Heights** - Set appropriate heights based on ad type and screen size
 
    ```kotlin
    GistAdControl(
@@ -727,9 +616,9 @@ The SDK requires the following permissions (automatically included):
    )
    ```
 
-6. **Error Monitoring** - Monitor error states for debugging (SDK handles UI automatically)
+5. **Error Monitoring** - Monitor error states for debugging (SDK handles UI automatically)
 
-7. **Lifecycle Awareness** - The component handles lifecycle automatically with Compose
+6. **Lifecycle Awareness** - The component handles lifecycle automatically with Compose
 
 ## Troubleshooting
 
@@ -747,17 +636,12 @@ The SDK requires the following permissions (automatically included):
 - Verify Compose BOM is included
 - Sync Gradle files
 
-### Network Errors
-
-- Check internet permission in AndroidManifest.xml
-- Ensure HTTPS is used for production
-- Verify network connectivity on device/emulator
-
 ### WebView Issues
 
 - Ensure WebView is updated on the device
 - Check JavaScript is enabled (enabled by default in SDK)
 - Verify no content blockers are interfering
+- Check internet permission in `AndroidManifest.xml` and network connectivity on device/emulator -- `adtag.js` makes its own request to the ad server from inside the WebView, so no native network permission beyond `INTERNET` is required
 
 ## Example App
 
@@ -767,7 +651,7 @@ The SDK includes a complete example app demonstrating:
 - **Dynamic Search** - Real-time search with debouncing
 - **Ad Filtering** - Filter by ad type (Image, Text/Image, Text)
 - **Geographic Targeting** - Select different regions
-- **API Version Switching** - Switch between V1 and V2
+- **Ad Size Selection** - Switch between IAB ad sizes and dynamic layout
 - **Event Callbacks** - Track ad loads, clicks, and height changes
 - **Custom Styling** - Material 3 themed UI
 
@@ -796,7 +680,6 @@ See the [ExampleApp](ExampleApp/) directory for the full implementation.
 #### 1. Basic Screen
 
 - Predefined query selection
-- API version switcher
 - Event callback demonstration
 - Configuration display
 
@@ -815,7 +698,7 @@ See the [ExampleApp](ExampleApp/) directory for the full implementation.
 
 #### 4. Display Ads Screen
 
-- Page URL input (with contextual targeting via `context`)
+- Page URL input
 - Ad size dropdown and environment picker
 - Custom no-fill passback view
 
@@ -857,6 +740,26 @@ See [PUBLISHING.md](PUBLISHING.md) for complete instructions on:
 - **Credentials template**: `gradle.properties.template`
 
 ## Changelog
+
+### Version 1.0.4
+
+- Search ads now embed the real production `adtag.js` script in a `WebView` and drive it via `defineSlot({ id, api_key, geo }, slotId, sizes, adTypes)` -> `slot.definePrompt(query)` -> `displayAd(slotId)`, instead of the SDK calling the Search API and rendering the response's `iframeUrl` itself
+- `GistAdControl` is now a thin wrapper that makes no API calls of its own -- `adtag.js` owns the entire ad request (its own JSONP GET to the Search API), response parsing, and rendering
+- Added a public `sizes: List<AdSize>` parameter to `GistAdControl` (default `listOf(AdSize.DYNAMIC)`), since `defineSlot` requires a non-empty `sizes` array
+- Added a public `answer: String?` parameter (mirrors `slot.defineAnswer(...)`) and a `passback` composable parameter, mirroring `GistDisplayAdControl`'s no-fill handling, giving callers full control over the fallback UI instead of a hard-coded error/empty state
+- Removed the `apiVersion`, `customBaseUrl`, `customIframeUrl`, `enableLogging`, and `onError` parameters from `GistAdControl`: `adtag.js`'s own search request is hardcoded to the v2 body shape and makes no native network call, so there is no version, base URL, or error to select/observe once the SDK is a pure embed
+- Removed `AdAPIService`, `AdAPIException`, `SearchRequest`, `SearchResponse`, and `IframeHTMLGenerator` (superseded by the embedded tag's own rendering; no longer needed now that the SDK makes no API calls)
+- Renamed `DisplayAdBridgeWebView` -> `AdTagBridgeWebView` and `DisplayAdLoadState` -> `AdTagLoadState`, now shared by both `GistDisplayAdControl` and `GistAdControl`
+- **Security note:** unlike display ads, search ads are gated by a secret `publisherKey`, which now becomes visible in the loaded HTML/JS source and is sent as a public `publisher_key` query parameter by `adtag.js` -- the same exposure a publisher already accepts by embedding the JS tag on a public webpage. Native apps lose the extra protection of keeping the key server-side/header-only, which the SDK had before this change
+
+### Version 1.0.3
+
+- Display ads now embed the real production `adtag.js` script in a `WebView` and drive it via `defineSlot`/`displayAd`, instead of the SDK calling the Display Ad API and rendering raw fields itself
+- `GistDisplayAdControl` is now a thin wrapper that makes no API calls of its own -- `adtag.js` owns the entire ad request, response parsing, and rendering
+- Added `target="_blank"` link interception (`WebChromeClient.onCreateWindow`) for display ad clicks
+- Removed the `context` parameter: `adtag.js`'s own request has no field for arbitrary targeting data, so supporting it would require a native-fetch special case that defeats the purpose of embedding the tag (this is being tracked as a follow-up if contextual targeting for native screens is needed)
+- Removed `DisplayAdAPIService`, `DisplayAdAPIException`, `DisplayAPIConstants`, `DisplayAdHTMLGenerator`, and `DisplayAdResponse` (superseded by the embedded tag's own rendering; no longer needed now that the SDK makes no API calls)
+- `GistDisplayAdControl`'s `environment` parameter is now `APIConstants.Environment` (the same type used by search ads) instead of its own duplicate `DisplayAPIConstants.Environment`
 
 ### Version 1.0.2
 
