@@ -78,7 +78,9 @@ public struct GistDisplayAdControl: View {
     /// Initialize the Gist display ad control with custom no-fill content.
     /// - Parameters:
     ///   - publisherID: Your publisher ID
-    ///   - pageURL: The current page/context URL to target the ad against (mirrors `url` in `defineSlot`)
+    ///   - pageURL: The current page/context URL to target the ad against (mirrors `url` in
+    ///     `defineSlot`). Must not be blank -- a blank value surfaces as a `.failed` state (with
+    ///     retry) rather than silently sending an empty `url` to `adtag.js`.
     ///   - sizes: One or more supported ad sizes (mirrors `sizes` in `defineSlot`)
     ///   - environment: API environment (defaults to production)
     ///   - theme: Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)
@@ -111,7 +113,9 @@ public struct GistDisplayAdControl: View {
     /// Initialize the Gist display ad control with a built-in "No ad available" fallback.
     /// - Parameters:
     ///   - publisherID: Your publisher ID
-    ///   - pageURL: The current page/context URL to target the ad against (mirrors `url` in `defineSlot`)
+    ///   - pageURL: The current page/context URL to target the ad against (mirrors `url` in
+    ///     `defineSlot`). Must not be blank -- a blank value surfaces as a `.failed` state (with
+    ///     retry) rather than silently sending an empty `url` to `adtag.js`.
     ///   - sizes: One or more supported ad sizes (mirrors `sizes` in `defineSlot`)
     ///   - environment: API environment (defaults to production)
     ///   - theme: Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)

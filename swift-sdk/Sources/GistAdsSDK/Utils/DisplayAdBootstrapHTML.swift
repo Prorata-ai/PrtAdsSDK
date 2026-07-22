@@ -22,11 +22,14 @@ import Foundation
 /// Errors that can occur while building the bootstrap HTML document.
 enum DisplayAdBootstrapError: LocalizedError, Equatable {
     case invalidSizes
+    case emptyPageURL
 
     var errorDescription: String? {
         switch self {
         case .invalidSizes:
             return "At least one AdSize must be provided"
+        case .emptyPageURL:
+            return "A non-blank pageURL is required"
         }
     }
 }
@@ -36,7 +39,7 @@ enum DisplayAdBootstrapHTML {
     /// Build the bootstrap HTML document for a single display ad slot.
     /// - Parameters:
     ///   - publisherID: Publisher ID, passed as `defineSlot`'s `id`.
-    ///   - pageURL: Page/context URL, passed as `defineSlot`'s `url`.
+    ///   - pageURL: Page/context URL, passed as `defineSlot`'s `url`. Must not be blank.
     ///   - sizes: One or more supported ad sizes (mirrors `sizes` in `defineSlot`).
     ///   - slotID: Unique per-instance element/slot id (so multiple display
     ///     ad controls on screen don't collide -- each gets its own WebView
@@ -46,7 +49,11 @@ enum DisplayAdBootstrapHTML {
     ///   - adTagScriptURL: URL of the `adtag.js` bundle to load.
     /// - Returns: A complete HTML document string suitable for
     ///   `WKWebView.loadHTMLString(_:baseURL:)`.
-    /// - Throws: `DisplayAdBootstrapError.invalidSizes` if `sizes` is empty.
+    /// - Throws: `DisplayAdBootstrapError.invalidSizes` if `sizes` is empty,
+    ///   `DisplayAdBootstrapError.emptyPageURL` if `pageURL` is blank. Without this guard a
+    ///   blank `pageURL` would be silently embedded verbatim as `url: ""` and sent to
+    ///   `adtag.js`, most likely producing an undiagnosable no-fill; throwing surfaces it as a
+    ///   `.failed` state instead, mirroring how `SearchAdBootstrapHTML` handles a blank `query`.
     static func generate(
         publisherID: String,
         pageURL: String,
@@ -57,6 +64,9 @@ enum DisplayAdBootstrapHTML {
     ) throws -> String {
         guard !sizes.isEmpty else {
             throw DisplayAdBootstrapError.invalidSizes
+        }
+        guard !pageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw DisplayAdBootstrapError.emptyPageURL
         }
 
         let sizesJSON = scriptSafeJSON(try AdSize.encodeSizesParam(sizes))

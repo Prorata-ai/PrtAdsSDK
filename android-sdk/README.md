@@ -751,6 +751,7 @@ See [PUBLISHING.md](PUBLISHING.md) for complete instructions on:
 - Removed `AdAPIService`, `AdAPIException`, `SearchRequest`, `SearchResponse`, and `IframeHTMLGenerator` (superseded by the embedded tag's own rendering; no longer needed now that the SDK makes no API calls)
 - Renamed `DisplayAdBridgeWebView` -> `AdTagBridgeWebView` and `DisplayAdLoadState` -> `AdTagLoadState`, now shared by both `GistDisplayAdControl` and `GistAdControl`
 - **Security note:** unlike display ads, search ads are gated by a secret `publisherKey`, which now becomes visible in the loaded HTML/JS source and is sent as a public `publisher_key` query parameter by `adtag.js` -- the same exposure a publisher already accepts by embedding the JS tag on a public webpage. Native apps lose the extra protection of keeping the key server-side/header-only, which the SDK had before this change
+- **Behavior change:** a blank `query` now throws `SearchAdBootstrapException.EmptyQuery`, which `GistAdControl` surfaces as a `Failed` state with a retry button. Previously, a blank query silently failed to load with no UI change and no error state -- if you were relying on that no-op as a "not ready yet" sentinel to suppress loading, guard the call site (e.g. don't render `GistAdControl` until `query` is non-blank) instead
 
 ### Version 1.0.3
 
@@ -760,6 +761,7 @@ See [PUBLISHING.md](PUBLISHING.md) for complete instructions on:
 - Removed the `context` parameter: `adtag.js`'s own request has no field for arbitrary targeting data, so supporting it would require a native-fetch special case that defeats the purpose of embedding the tag (this is being tracked as a follow-up if contextual targeting for native screens is needed)
 - Removed `DisplayAdAPIService`, `DisplayAdAPIException`, `DisplayAPIConstants`, `DisplayAdHTMLGenerator`, and `DisplayAdResponse` (superseded by the embedded tag's own rendering; no longer needed now that the SDK makes no API calls)
 - `GistDisplayAdControl`'s `environment` parameter is now `APIConstants.Environment` (the same type used by search ads) instead of its own duplicate `DisplayAPIConstants.Environment`
+- **Behavior change:** a blank `pageUrl` now throws `DisplayAdBootstrapException.EmptyPageUrl`, which `GistDisplayAdControl` surfaces as a `Failed` state with a retry button, instead of silently embedding an empty `url: ""` in the `defineSlot` call (which would otherwise produce an undiagnosable no-fill). Always pass a non-blank `pageUrl`
 
 ### Version 1.0.2
 

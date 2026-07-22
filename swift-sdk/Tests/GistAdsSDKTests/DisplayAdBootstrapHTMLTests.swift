@@ -87,6 +87,18 @@ final class DisplayAdBootstrapHTMLTests: XCTestCase {
         }
     }
 
+    func testThrowsEmptyPageURLForBlankPageURL() {
+        XCTAssertThrowsError(try generate(pageURL: "   ")) { error in
+            XCTAssertEqual(error as? DisplayAdBootstrapError, .emptyPageURL)
+        }
+    }
+
+    func testThrowsEmptyPageURLForEmptyPageURL() {
+        XCTAssertThrowsError(try generate(pageURL: "")) { error in
+            XCTAssertEqual(error as? DisplayAdBootstrapError, .emptyPageURL)
+        }
+    }
+
     // MARK: - Escaping / injection safety
 
     func testPageURLWithQuoteIsEscapedInJSStringLiteral() throws {

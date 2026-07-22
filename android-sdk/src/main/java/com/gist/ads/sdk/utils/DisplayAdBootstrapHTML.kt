@@ -21,6 +21,7 @@ import com.gist.ads.sdk.models.AdSize
  */
 sealed class DisplayAdBootstrapException(message: String) : Exception(message) {
     object InvalidSizes : DisplayAdBootstrapException("At least one AdSize must be provided")
+    object EmptyPageUrl : DisplayAdBootstrapException("A non-blank pageUrl is required")
 }
 
 /**
@@ -32,7 +33,7 @@ object DisplayAdBootstrapHTML {
      * Build the bootstrap HTML document for a single display ad slot.
      *
      * @param publisherId Publisher ID, passed as `defineSlot`'s `id`.
-     * @param pageUrl Page/context URL, passed as `defineSlot`'s `url`.
+     * @param pageUrl Page/context URL, passed as `defineSlot`'s `url`. Must not be blank.
      * @param sizes One or more supported ad sizes (mirrors `sizes` in `defineSlot`).
      * @param slotId Unique per-instance element/slot id (each control gets its own WebView, but the
      *   id must still match the DOM element `defineSlot` targets).
@@ -40,6 +41,10 @@ object DisplayAdBootstrapHTML {
      *   failure (see `definePassbackFunction`).
      * @param adTagScriptUrl URL of the `adtag.js` bundle to load.
      * @throws DisplayAdBootstrapException.InvalidSizes if `sizes` is empty.
+     * @throws DisplayAdBootstrapException.EmptyPageUrl if `pageUrl` is blank. Without this guard
+     *   a blank `pageUrl` would be silently embedded verbatim as `url: ""` and sent to
+     *   `adtag.js`, most likely producing an undiagnosable no-fill; throwing surfaces it as a
+     *   `Failed` state instead, mirroring how `SearchAdBootstrapHTML` handles a blank `query`.
      */
     fun generate(
         publisherId: String,
@@ -51,6 +56,9 @@ object DisplayAdBootstrapHTML {
     ): String {
         if (sizes.isEmpty()) {
             throw DisplayAdBootstrapException.InvalidSizes
+        }
+        if (pageUrl.isBlank()) {
+            throw DisplayAdBootstrapException.EmptyPageUrl
         }
 
         val sizesJson = scriptSafeJson(AdSize.encodeSizesParam(sizes))

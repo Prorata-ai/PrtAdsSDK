@@ -989,6 +989,7 @@ Copyright © 2026 Gist. All rights reserved.
 - Removed `AdAPIService`, `AdAPIError`, `SearchRequestV1`/`SearchRequestV2`/`SearchResponse`, and `IframeHTMLGenerator` (superseded by the embedded tag's own request and rendering)
 - **Security note:** `publisherKey` is now sent as a public `publisher_key` query parameter in the tag's own JSONP request (visible in loaded HTML/JS) instead of a hidden `Publisher-Key` HTTP header in a native POST -- the same exposure a publisher already accepts by embedding the JS tag on a public webpage
 - Renamed `DisplayAdBridgeWebView`/`DisplayAdLoadState` to `AdTagBridgeWebView`/`AdTagLoadState` to reflect that they're now shared by both search and display ads; also added `target="_blank"` link interception to the shared bridge (previously display-only) so search ad clicks work the same way
+- **Behavior change:** a blank `query` now throws `SearchAdBootstrapError.emptyQuery`, which `GistAdControl` surfaces as a `.failed` state with a retry button. Previously, a blank query silently failed to load with no UI change and no error state -- if you were relying on that no-op as a "not ready yet" sentinel to suppress loading, guard the call site instead
 
 ### Version 1.0.4
 
@@ -998,6 +999,7 @@ Copyright © 2026 Gist. All rights reserved.
 - Removed the `context` parameter: `adtag.js`'s own request has no field for arbitrary targeting data, so supporting it would require a native-fetch special case that defeats the purpose of embedding the tag (this is being tracked as a follow-up if contextual targeting for native screens is needed)
 - Removed `DisplayAdAPIService`, `DisplayAPIConstants`, `DisplayAdHTMLGenerator`, and `DisplayAdResponse` (superseded by the embedded tag's own rendering; no longer needed now that the SDK makes no API calls)
 - `GistDisplayAdControl`'s `environment` parameter is now `GistAdControl.APIEnvironment` (the same type used by search ads) instead of its own duplicate enum
+- **Behavior change:** a blank `pageURL` now throws `DisplayAdBootstrapError.emptyPageURL`, which `GistDisplayAdControl` surfaces as a `.failed` state with a retry button, instead of silently embedding an empty `url: ""` in the `defineSlot` call (which would otherwise produce an undiagnosable no-fill). Always pass a non-blank `pageURL`
 
 ### Version 1.0.3
 

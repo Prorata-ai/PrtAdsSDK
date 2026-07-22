@@ -38,7 +38,9 @@ import kotlinx.coroutines.launch
  * `defineSlot({id, url}, slotId, sizes)` -> `displayAd(slotId)` flow.
  *
  * @param publisherId Your publisher ID
- * @param pageUrl The current page/context URL to target the ad against (mirrors `url` in `defineSlot`)
+ * @param pageUrl The current page/context URL to target the ad against (mirrors `url` in
+ *   `defineSlot`). Must not be blank -- a blank value surfaces as a [AdTagLoadState.Failed] state
+ *   (with retry) rather than silently sending an empty `url` to `adtag.js`.
  * @param sizes One or more supported ad sizes (mirrors `sizes` in `defineSlot`)
  * @param environment API environment (defaults to production)
  * @param theme Theme preference - "light", "dark", or "system" (defaults to "system" for auto-detection)

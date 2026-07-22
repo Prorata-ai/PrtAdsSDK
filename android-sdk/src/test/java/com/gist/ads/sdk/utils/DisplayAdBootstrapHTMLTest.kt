@@ -92,6 +92,16 @@ class DisplayAdBootstrapHTMLTest {
         generate(sizes = emptyList())
     }
 
+    @Test(expected = DisplayAdBootstrapException.EmptyPageUrl::class)
+    fun `throws EmptyPageUrl for blank pageUrl`() {
+        generate(pageUrl = "   ")
+    }
+
+    @Test(expected = DisplayAdBootstrapException.EmptyPageUrl::class)
+    fun `throws EmptyPageUrl for empty pageUrl`() {
+        generate(pageUrl = "")
+    }
+
     // Escaping / injection safety
 
     @Test
